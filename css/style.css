@@ -9815,3 +9815,37 @@ textarea.form-control {
     font-size: 1.8rem;
   }
 }
+
+
+
+/* Always-visible Other Projects cards */
+#projects-section .project {
+  min-height: 320px;
+  background-size: cover !important;
+  background-position: center center !important;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+#projects-section .project .overlay {
+  opacity: 0.45 !important;
+  background: #000 !important;
+}
+
+#projects-section .project .text {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 3;
+}
+
+#projects-section .project h3 a,
+#projects-section .project span,
+#projects-section .project p {
+  color: #fff !important;
+}
+
+#projects-section .project p {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.6;
+}
