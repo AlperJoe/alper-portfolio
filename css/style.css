@@ -9849,3 +9849,10 @@ textarea.form-control {
   font-size: 15px;
   line-height: 1.6;
 }
+.home-slider {
+  overflow: visible !important;
+}
+
+.owl-carousel {
+  touch-action: auto !important;
+}
