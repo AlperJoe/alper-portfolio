@@ -127,15 +127,18 @@
           </p>
 
           <p>
-            The project focuses on deterministic game logic, explicit system design, and low-level control over
-            networking, synchronization, and turn-based flow instead of relying on high-level engines or gameplay frameworks.
+            The project emphasizes explicit, deterministic system design rather than high-level game engines or external gameplay frameworks. 
+			All core mechanics, player states, game modes, and skill effects are implemented through hardcoded Lua logic, allowing 
+			full control over networking, synchronization, and game flow.
           </p>
 
           <ul class="pedro-points">
             <li>Custom TCP server for real-time multiplayer sessions and game rooms</li>
             <li>Deterministic client-server architecture with authoritative game-state handling</li>
-            <li>Rule-based bots for offline play and multiple game modes</li>
-            <li>Custom turn / phase system with complex card and skill interactions</li>
+            <li>Algorithm-based bots driven by rule-based decision logic (no AI/ML)</li>
+			<li>Multiple game modes, including online multiplayer and offline play with bots</li>
+            <li>A fully custom turn and phase system with complex card and skill interactions</li>
+            <li>Modular architecture separating networking, game logic, and rendering</li>
             <li>iOS deployment and performance optimization for production release</li>
           </ul>
 
