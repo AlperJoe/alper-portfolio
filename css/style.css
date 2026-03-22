@@ -9856,3 +9856,70 @@ textarea.form-control {
 .owl-carousel {
   touch-action: auto !important;
 }
+/* Static hero replacement */
+#home-section.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 120px 0 80px;
+}
+
+.hero-static-row {
+  min-height: calc(100vh - 200px);
+}
+
+.hero-static-text h1 {
+  font-size: 56px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.hero-static-text h1 span {
+  color: #ffbd39;
+}
+
+.hero-static-text h2 {
+  font-size: 28px;
+  color: rgba(255,255,255,0.85);
+}
+
+.hero-static-text p,
+.hero-static-text .subheading {
+  color: rgba(255,255,255,0.8);
+}
+
+.hero-static-image {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+.hero-static-image img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+@media (max-width: 991px) {
+  #home-section.hero {
+    min-height: auto;
+    padding: 120px 0 60px;
+  }
+
+  .hero-static-row {
+    min-height: auto;
+  }
+
+  .hero-static-text {
+    margin-bottom: 30px;
+    text-align: center;
+  }
+
+  .hero-static-text h1 {
+    font-size: 40px;
+  }
+
+  .hero-static-text h2 {
+    font-size: 22px;
+  }
+}
