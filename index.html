@@ -54,9 +54,10 @@
           <p>
             I build gameplay systems, multiplayer architectures, and interactive experiences.
           </p>
-          <p>
-            <a href="#pedro-section" class="btn btn-primary py-3 px-4">View Featured Project</a>
-          </p>
+			<p>
+			  <a href="#pedro-section" class="btn btn-primary py-3 px-4">View Featured Project</a>
+			  <a href="#projects-section" class="btn btn-white btn-outline-white py-3 px-4">View Other Projects</a>
+			</p>
         </div>
       </div>
 
@@ -141,40 +142,69 @@
             <li>Modular architecture separating networking, game logic, and rendering</li>
             <li>iOS deployment and performance optimization for production release</li>
           </ul>
-
-          <div class="pedro-buttons">
-            <a href="https://apps.apple.com/tr/app/pedro/id6757151351?l=tr" target="_blank" class="btn btn-primary py-3 px-4">
-              View on App Store
-            </a>
-			<button type="button" class="btn btn-white btn-outline-white py-3 px-4" onclick="document.getElementById('projects-section').scrollIntoView({ behavior: 'smooth' });">
-			  Other Projects
-			</button>
-			<button type="button" class="btn btn-secondary py-3 px-4" onclick="togglePedroTech()">
-			  Technical Breakdown
-			</button>
+			<div class="pedro-buttons">
+			  <a href="https://apps.apple.com/tr/app/pedro/id6757151351?l=tr" target="_blank" class="btn btn-primary py-3 px-4">
+			    View on App Store
+			  </a>
+			  <button type="button" class="btn btn-white btn-outline-white py-3 px-4" onclick="togglePedroTech()">
+			    Technical Breakdown
+			  </button>
+			</div>
+			
 			<div id="pedro-tech" style="display:none; margin-top:30px; text-align:left;">
 			  <h4>Technical Breakdown</h4>
 			
 			  <p>
-			    Pedro is structured as a modular client–server architecture with a clear separation of concerns.
-			    Game rules are implemented in a framework-independent core, while the server manages state and validation.
+			    Pedro is a multiplayer card game developed with Lua and LÖVE2D, supporting both offline single-player
+			    and online multiplayer matches for 2–4 players. The project was built around a modular client–server
+			    architecture, with game logic on the server side and rendering, UI, and audio on the client side.
 			  </p>
 			
+			  <h5>Technical Stack</h5>
+			  <ul>
+			    <li>LÖVE2D for rendering and game framework</li>
+			    <li>Lua as the core programming language</li>
+			    <li>TCP sockets with JSON messaging for networking</li>
+			    <li>Push library for scalable UI and virtual resolution</li>
+			  </ul>
+			
+			  <h5>Architecture</h5>
 			  <p>
-			    The server operates as the single source of truth, processing player actions and emitting events.
-			    Clients react to these events without re-simulating logic, ensuring synchronization and consistency.
+			    The codebase is split into independent layers: a framework-agnostic core for rules and card logic,
+			    a server layer for authoritative state management, and a client layer for visuals, interaction, and feedback.
+			    This separation makes the project easier to maintain, extend, and debug.
 			  </p>
 			
-			  <p>
-			    Multiplayer is implemented using a custom TCP server with JSON messaging, supporting rooms, reconnection,
-			    and snapshot-based synchronization.
-			  </p>
+			  <h5>Multiplayer</h5>
+			  <ul>
+			    <li>Custom TCP server with room creation and join flow</li>
+			    <li>Server-authoritative game state handling</li>
+			    <li>Snapshot-based synchronization for clients</li>
+			    <li>Reconnect support for ongoing sessions</li>
+			    <li>Shared logic between offline and online modes through a local server structure</li>
+			  </ul>
+			
+			  <h5>Game Systems</h5>
+			  <ul>
+			    <li>Custom phase-based rules including God’s Gift, Main, Limbo, and Game Over</li>
+			    <li>Special card logic for Zero, Seven, Eight, Nine, and King</li>
+			    <li>Pedro call flow and final-turn resolution</li>
+			    <li>Rule-based bot AI with memory, targeting, and co-op awareness</li>
+			  </ul>
+			
+			  <h5>UI / UX</h5>
+			  <ul>
+			    <li>Responsive layout with scalable resolution handling</li>
+			    <li>Integrated tutorial modal with video playback</li>
+			    <li>Audio feedback, emotes, and end-game cinematic systems</li>
+			    <li>Clear separation between logic, networking, and rendering responsibilities</li>
+			  </ul>
 			
 			  <p>
-			    The project also includes a rule-based AI system with memory and team-aware behavior, as well as a shared
-			    architecture between offline and online modes through a local server.
+			    For more screenshots and project details, see the sections below and the rest of the portfolio.
 			  </p>
 			</div>
+         
           </div>
         </div>
       </div>
