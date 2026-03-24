@@ -149,6 +149,32 @@
 			<button type="button" class="btn btn-white btn-outline-white py-3 px-4" onclick="document.getElementById('projects-section').scrollIntoView({ behavior: 'smooth' });">
 			  Other Projects
 			</button>
+			<button type="button" class="btn btn-secondary py-3 px-4" onclick="togglePedroTech()">
+			  Technical Breakdown
+			</button>
+			<div id="pedro-tech" style="display:none; margin-top:30px; text-align:left;">
+			  <h4>Technical Breakdown</h4>
+			
+			  <p>
+			    Pedro is structured as a modular client–server architecture with a clear separation of concerns.
+			    Game rules are implemented in a framework-independent core, while the server manages state and validation.
+			  </p>
+			
+			  <p>
+			    The server operates as the single source of truth, processing player actions and emitting events.
+			    Clients react to these events without re-simulating logic, ensuring synchronization and consistency.
+			  </p>
+			
+			  <p>
+			    Multiplayer is implemented using a custom TCP server with JSON messaging, supporting rooms, reconnection,
+			    and snapshot-based synchronization.
+			  </p>
+			
+			  <p>
+			    The project also includes a rule-based AI system with memory and team-aware behavior, as well as a shared
+			    architecture between offline and online modes through a local server.
+			  </p>
+			</div>
           </div>
         </div>
       </div>
@@ -337,13 +363,24 @@
   
   <script src="js/main.js"></script>
 
-<script>
-  window.addEventListener('load', function () {
-    if (window.location.hash) {
-      history.replaceState(null, '', window.location.pathname);
-      window.scrollTo(0, 0);
-    }
-  });
-</script>
+	<script>
+	  window.addEventListener('load', function () {
+	    if (window.location.hash) {
+	      history.replaceState(null, '', window.location.pathname);
+	      window.scrollTo(0, 0);
+	    }
+	  });
+	</script>
+
+	<script>
+	function togglePedroTech() {
+	  const section = document.getElementById("pedro-tech");
+	  if (section.style.display === "none") {
+	    section.style.display = "block";
+	  } else {
+	    section.style.display = "none";
+	  }
+	}
+	</script>
   </body>
 </html>
