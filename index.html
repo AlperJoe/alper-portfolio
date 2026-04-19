@@ -151,59 +151,62 @@
 			  </button>
 			</div>
 			
-			<div id="pedro-tech" style="display:none; margin-top:30px; text-align:left;">
-			  <h4>Technical Breakdown</h4>
+<div id="pedro-tech" style="display:none; margin-top:30px; text-align:left;">
+<h4>Technical Breakdown</h4>
+
+<p>
+  Pedro is a multiplayer card game built with Lua and LÖVE2D. I developed the programming side of the project from scratch, focusing on networking, state management, and gameplay architecture at a low level.
+</p>
+
+<h5>1. Implemented Features & Architecture</h5>
+<p>
+  To keep the project maintainable as it grew, I organized the programming side into clear modules:
+</p>
+<ul>
+  <li><strong>Architecture:</strong> Codebase separated into <code>client</code>, <code>server</code>, and <code>core</code> layers.</li>
+  <li><strong>Multiplayer:</strong> Custom TCP server with room creation, authoritative state handling, and snapshot-based synchronization.</li>
+<li><strong>Game Systems:</strong> Custom phase logic, card effects, and shared gameplay rules implemented independently from the rendering layer.</li>
+</ul>
+
+
+<h5>2. Collaboration & Development Process</h5>
+<p>
+  Pedro was developed in collaboration with a designer, while I led the programming side of the project, including architecture, networking, and gameplay systems.
+
+</p>
+<ul>
+  <li><strong>Version Control:</strong> Used Git/GitHub throughout development to track gameplay, networking, and UI changes over time.</li>
+  <li><strong>Code Organization:</strong> Structured the project into <code>client</code>, <code>server</code>, and <code>core</code> layers to keep feature development manageable.</li>
+  <li><strong>Iteration:</strong> Continued refining the project through testing, release preparation, and post-build fixes for deployment.</li>
+</ul>
+<p>
+<a href="https://github.com/AlperJoe/Pedro" target="_blank"><strong>View Repository</strong></a></p>
+
+<h5>3. Debugging & Optimization</h5>
+<ul>
+  <li><strong>Desync Prevention:</strong> Reduced multiplayer state errors by keeping validation and rule checks on the authoritative side.</li>
+  <li><strong>Debugging Through Separation:</strong> Keeping gameplay logic independent from rendering made it easier to isolate logic bugs from UI and networking issues.</li>
+  <li><strong>Mobile Stability:</strong> Used scalable rendering and structured asset handling to keep the game stable across different screen sizes.</li>
+</ul>
+
+<h5>4. Source Code Examples</h5>
+<p>
+  Below are direct links to scripts that demonstrate my programming approach:
+</p>
+<ul>
+	<li><a href="https://github.com/AlperJoe/Pedro/blob/main/server/TcpServer.lua" target="_blank"><strong>server/TcpServer.lua</strong></a>: Custom TCP server flow and authoritative multiplayer state handling.</li>
+	<li><a href="https://github.com/AlperJoe/Pedro/blob/main/core/Agent.lua" target="_blank"><strong>core/Agent.lua</strong></a>: Rule-based bot logic for memory, targeting, and decision-making.</li>
+	<li><a href="https://github.com/AlperJoe/Pedro/blob/main/core/Rules.lua" target="_blank"><strong>core/Rules.lua</strong></a>: Pure gameplay logic for command validation and phase-dependent actions.</li>
+</ul>
+
+<p style="margin-top:20px;">
+  For gameplay footage, screenshots, and project context, see the sections below.
+</p>
+</div>
+
+			  
 			
-			  <p>
-			    Pedro is a multiplayer card game developed with Lua and LÖVE2D, supporting both offline single-player
-			    and online multiplayer matches for 2–4 players. The project was built around a modular client–server
-			    architecture, with game logic on the server side and rendering, UI, and audio on the client side.
-			  </p>
-			
-			  <h5>Technical Stack</h5>
-			  <ul>
-			    <li>LÖVE2D for rendering and game framework</li>
-			    <li>Lua as the core programming language</li>
-			    <li>TCP sockets with JSON messaging for networking</li>
-			    <li>Push library for scalable UI and virtual resolution</li>
-			  </ul>
-			
-			  <h5>Architecture</h5>
-			  <p>
-			    The codebase is split into independent layers: a framework-agnostic core for rules and card logic,
-			    a server layer for authoritative state management, and a client layer for visuals, interaction, and feedback.
-			    This separation makes the project easier to maintain, extend, and debug.
-			  </p>
-			
-			  <h5>Multiplayer</h5>
-			  <ul>
-			    <li>Custom TCP server with room creation and join flow</li>
-			    <li>Server-authoritative game state handling</li>
-			    <li>Snapshot-based synchronization for clients</li>
-			    <li>Reconnect support for ongoing sessions</li>
-			    <li>Shared logic between offline and online modes through a local server structure</li>
-			  </ul>
-			
-			  <h5>Game Systems</h5>
-			  <ul>
-			    <li>Custom phase-based rules including God’s Gift, Main, Limbo, and Game Over</li>
-			    <li>Special card logic for Zero, Seven, Eight, Nine, and King</li>
-			    <li>Pedro call flow and final-turn resolution</li>
-			    <li>Rule-based bot AI with memory, targeting, and co-op awareness</li>
-			  </ul>
-			
-			  <h5>UI / UX</h5>
-			  <ul>
-			    <li>Responsive layout with scalable resolution handling</li>
-			    <li>Integrated tutorial modal with video playback</li>
-			    <li>Audio feedback, emotes, and end-game cinematic systems</li>
-			    <li>Clear separation between logic, networking, and rendering responsibilities</li>
-			  </ul>
-			
-			  <p>
-			    For more screenshots and project details, see the sections below and the rest of the portfolio.
-			  </p>
-			</div>
+
          
           </div>
         </div>
