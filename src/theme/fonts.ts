@@ -12,8 +12,8 @@ export const fonts = {
   buasTitle: "Pixelify Sans",
   /** Frame 1, the Bilkent title. */
   bilkentTitle: "Big Shoulders Display",
-  /** Frame 2 headline and card titles. */
-  frame2Display: "Bricolage Grotesque",
+  /** Frame 2 headline and card titles. Black Chancery, one weight. */
+  frame2Display: "Black Chancery",
   /** Pedro's line in Frame 2. */
   pedroLine: "Instrument Serif",
   /** Frame 3 title. */
@@ -33,7 +33,7 @@ export function applyFonts() {
   root.style.setProperty("--font-name", stack(fonts.name, "serif"));
   root.style.setProperty("--font-buas", stack(fonts.buasTitle, "sans-serif"));
   root.style.setProperty("--font-bilkent", stack(fonts.bilkentTitle, "sans-serif"));
-  root.style.setProperty("--font-frame2", stack(fonts.frame2Display, "sans-serif"));
+  root.style.setProperty("--font-frame2", stack(fonts.frame2Display, "serif"));
   root.style.setProperty("--font-pedro", stack(fonts.pedroLine, "serif"));
   root.style.setProperty("--font-mono", stack(fonts.mono, "monospace"));
   root.style.setProperty("--font-frame5", stack(fonts.frame5Display, "serif"));
