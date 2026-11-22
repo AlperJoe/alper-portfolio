@@ -801,11 +801,20 @@
   outline-offset: 2px;
 }
 
+/* The phone frame is taller than the screen. Pin the note to the screen, not the frame. */
+.frame2.is-phone .frame2-built {
+  position: fixed;
+  inset: 0;
+}
+
 .frame2.is-phone .frame2-built-sheet {
   left: var(--note-gutter);
-  width: calc(100% - 2 * var(--note-gutter));
+  right: var(--note-gutter);
   top: var(--note-gutter);
-  max-height: calc(100% - 2 * var(--note-gutter));
+  bottom: var(--note-gutter);
+  width: auto;
+  height: auto;
+  max-height: none;
   transform: none;
 }
 
