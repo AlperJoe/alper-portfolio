@@ -111,9 +111,10 @@ button.why-button.why-button:focus:not(:focus-visible) {
   box-sizing: border-box;
   width: min(var(--why-max, 460px), calc(100% - 2 * var(--why-edge, 16px)));
   max-width: min(var(--why-max, 460px), calc(100% - 2 * var(--why-edge, 16px)));
-  max-height: calc(100% - 2 * var(--why-edge, 16px));
+  max-height: calc(100svh - 2 * var(--why-edge, 16px));
   padding: 18px 22px 22px;
   overflow: auto;
+  overscroll-behavior: contain;
   background:
     linear-gradient(180deg, rgba(255, 252, 247, 0.7), rgba(255, 252, 247, 0) 32%),
     linear-gradient(155deg, rgba(255, 255, 255, 0.35), rgba(150, 110, 62, 0.07)),
@@ -147,6 +148,7 @@ button.why-button.why-button:focus:not(:focus-visible) {
 .why-close {
   position: sticky;
   z-index: 1;
+  top: 0;
   float: right;
   width: 28px;
   height: 28px;
@@ -194,6 +196,22 @@ button.why-button.why-button:focus:not(:focus-visible) {
   line-height: var(--why-text-line, 1.45);
   color: var(--why-ink, #2a2520);
   text-align: left;
+}
+
+.why-panel p + p {
+  margin-top: 12px;
+}
+
+/* Gold band behind the lower part of a marked phrase. Notes without a mark are unchanged. */
+.why-panel mark {
+  background: linear-gradient(
+    transparent 45%,
+    rgba(239, 199, 133, 0.55) 45%,
+    rgba(239, 199, 133, 0.55) 92%,
+    transparent 92%
+  );
+  color: inherit;
+  padding: 0 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {

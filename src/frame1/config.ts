@@ -15,77 +15,27 @@ export const frame1Config = {
   /** Focus ring used by every keyboard-focusable control. */
   focus: "#F2EEE6",
   /**
-   * Campus photos stay close to their own color: darker overall, with a light
-   * wash of the school color.
+   * The 1440×900 stage. `--k` scales every length with the frame, by the
+   * tighter of width and height, so a short desktop keeps this arrangement.
+   * Phones use the one-column layout below `stackBelow`.
    */
-  duotone: {
-    brightness: 0.9,
-    tint: 0.12,
-    darken: 0,
-  },
-  /**
-   * Full frame: portrait at the top, a card on each side.
-   * The three card margins (top, bottom, outer) are one length.
-   * The portrait is placed from the top of the hair, not from the photo edge.
-   */
-  layout: {
-    /** Each card at its bottom edge, as a fraction of the frame width. */
-    cardWidth: 0.3,
-    /**
-     * Portrait photo height in the full frame, as a fraction of the frame height.
-     * The visible face and shoulders are about 30% of the frame height.
-     * It is smaller where the panels or the text under the name need the room.
-     */
-    portrait: 0.48,
-    /** Largest the portrait gets in the start state, as a fraction of the frame height. */
-    portraitStart: 0.62,
-    /**
-     * Space kept to the top, bottom and outer edges by the panel text, as a
-     * fraction of the frame height. The campus photos themselves run to the
-     * screen edges in the side-by-side layout.
-     */
-    margin: 0.056,
-    marginMin: 48,
-    marginMax: 72,
-    /** Rounded corners of the stacked cards. Side-by-side panels meet the screen edges square. */
-    radius: 12,
-    /** Soft fade at the inner edge, as a fraction of the card's bottom width. */
-    edgeFade: 0.15,
-    /**
-     * The inner edge leans toward the center. At the top it is this much
-     * further in than at the bottom, as a fraction of the frame width.
-     */
-    lean: 0.06,
-    /** Gap between the portrait and the name, in pixels. */
-    nameGap: 14,
-    /** Gap between the name and the line under it, in pixels. */
-    lineGap: 10,
-    /** Clear space between the center column and each card, in pixels. */
-    columnGutter: 16,
-    /** School marks, in pixels. They sit in the bottom outer corners, on the photos. */
-    mark: 44,
-    /** Space between each mark and the screen corner, in pixels. */
-    markInset: 20,
-    /** Stacked cards when the frame is narrower than this, or taller than it is wide. */
-    stackBelow: 1000,
-    /**
-     * From stackBelow through this width, the name is smaller and the middle
-     * column is only the gap between the two panels' text. If the name or its
-     * icons still meet that text, the cards use the stacked layout.
-     */
-    mediumUntil: 1280,
-    /** Largest scale of the name in that band, before it shrinks further to stay clear. */
-    mediumNameScale: 0.78,
-    /** Smallest the name may be in that band, in pixels, before the cards stack. */
-    mediumNameMin: 32,
-    /** Clear space between the name row and the panel text, in pixels. */
-    mediumClearance: 14,
+  stage: {
+    width: 1440,
+    height: 900,
+    cardWidth: 568,
+    sceneHeight: 500,
     /** No text on this frame goes below this size, in pixels. */
     minText: 13,
-    /** Where the top of the hair sits in the full frame, as a fraction of the frame height. */
-    hairFrame: 0.048,
-    /** Least space under the middle text in the full frame, in pixels. */
-    bottomRoom: 24,
+    /** One column when the frame is narrower than this. */
+    stackBelow: 1000,
+    /** School marks, in pixels, in the bottom outer corners. */
+    mark: 44,
+    portraitFrom: 520,
+    portraitTo: 426,
+    portraitTopFrom: 0,
+    portraitTopTo: -42,
+    /** How far each card slides in from the outside, in pixels. */
+    cardSlide: 70,
   },
   portraitLayout: {
     naturalWidth: 1254,
@@ -109,92 +59,14 @@ export const frame1Config = {
       solid: 0.78,
     },
   },
-  /**
-   * Campus photos are framed for the sloped panels: sky behind the text,
-   * the BUas tower and the Bilkent building whole in the lower part.
-   * object-position, as percentages of each photo.
-   */
-  photos: {
-    /** Horizontal anchor. The vertical place follows the text, so the landmark stays below it. */
-    buas: "22%",
-    bilkent: "82%",
-    /** Where the landmark starts in each photo. The photo shifts down if the text would cover it. */
-    buasMark: 0.5,
-    bilkentMark: 0.58,
-  },
-  /**
-   * Invitations to act. Instrument Serif italic, gold, with a hand-drawn
-   * underline that draws on hover and keyboard focus. Nothing moves on its own.
-   */
-  invite: {
-    color: "#EFC785",
-    size: 20,
-    /** Draw time of the underline, in seconds. */
-    draw: 0.2,
-  },
-  middle: {
-    nameSize: "clamp(40px, 4.4vw, 80px)",
-    nameLine: 1.05,
-    nameColor: "#F2EEE6",
-    /** The first sentence under the name. Archivo, light text. */
-    leadSize: 20,
-    leadWeight: 400,
-    leadLine: 1.4,
-    leadColor: "#F2EEE6",
-    /** The paragraph under it. Archivo, muted. */
-    moreSize: 15,
-    moreWeight: 400,
-    moreLine: 1.55,
-    moreColor: "rgba(242, 238, 230, 0.68)",
-    /** Widest the paragraph may be, in characters. */
-    moreMeasure: 40,
-    /** Space between the sentence and the paragraph, in pixels. */
-    moreGap: 12,
-    /** Scroll hint in the start state. */
-    hintSize: 18,
-  },
   icons: {
-    size: 40,
+    size: 36,
     /** Lift on hover and keyboard focus, in pixels. */
     lift: 2,
     /** Space between each mark and the name, in pixels. */
     nameGap: 14,
     linkedin: "#0A66C2",
     radius: 8,
-  },
-  text: {
-    spaceDivider: 12,
-    spaceLabel: 14,
-    spaceBody: 8,
-    spaceButton: 20,
-    titleLine: 1.12,
-    buasTitleSize: "clamp(24px, 2.05vw, 42px)",
-    buasTitleWeight: 600,
-    bilkentTitleSize: "clamp(26px, 2.2vw, 46px)",
-    bilkentTitleWeight: 800,
-    labelSize: 16,
-    labelWeight: 600,
-    labelShadow: "0 1px 2px rgba(0, 0, 0, 0.85), 0 6px 18px rgba(0, 0, 0, 0.45)",
-    buasLabel: "#FFC496",
-    bilkentLabel: "#BFD0FF",
-    ruleOpacity: 0.2,
-    bodySize: 17,
-    buttonSize: 16,
-    buttonPadY: 8,
-    buttonPadX: 14,
-    buttonRadius: 6,
-    buttonBorder: "rgba(255, 255, 255, 0.4)",
-    buttonWeight: 600,
-    courseSize: 16,
-    courseCodeWeight: 600,
-    courseCodeOpacity: 0.7,
-    courseNameWeight: 400,
-    courseNameOpacity: 0.95,
-    courseUnderline: 0.35,
-    courseGap: 8,
-    bodyWeight: 400,
-    bodyLine: 1.45,
-    bodyOpacity: 0.94,
   },
   research: {
     /** How long the panel takes to grow out and shrink back, in seconds. */
@@ -259,21 +131,47 @@ export const frame1Config = {
     ],
     footer: "Alper Bozkurt, Master Game Technology, Breda University of Applied Sciences",
   },
-  /** Under the name in the full frame: one sentence, then a short paragraph. */
-  intro: {
-    lead: "I’m a game programmer who enjoys turning ideas into something playable.",
-    more: "I like figuring out how things work, then building something of my own. That has taken me from publishing an online card game to researching how AI can help designers create levels.",
+  /** Cover, then the settled center column. */
+  cover: {
+    hi: "Hi, I am",
+    name: "Alper",
+    line1: "I think work matters most when it serves a",
+    vision: "vision",
+    line2: "I want to build one, or join one.",
+    scroll: "Scroll to explore",
   },
-  /** First sentence, shown alone on a compact card. The rest follows in the full text. */
-  buasLead:
-    "In my master’s research, I explore how AI agents can help generate dungeon levels that match a designer’s goals.",
-  buasRest:
-    "The aim is to use agents with different play styles to evaluate generated levels and find those that meet the selected goal.",
-  /** Line between the Bilkent divider and the course label, with its note. */
+  center: {
+    surname: "Bozkurt",
+    role: "Tools programmer",
+    quoteBefore: "Building tools that give designers",
+    quoteEm: "more control",
+    quoteAfter: "over what they make.",
+    status: "Now building",
+    building:
+      "Multi-behavioural automated playtesters that play generated levels and check them against the designer's metrics.",
+    buildingEm: "automated playtesters",
+  },
+  buas: {
+    title: "Master Game Technology",
+    subtitle: "What I will do, in simple terms",
+    invite: "Explore my research",
+    result: "Intended level generated",
+    rows: [
+      { tag: "DESIGNER", tone: "designer", text: "sets the", mark: "metrics" },
+      { tag: "GENERATOR", tone: "generator", text: "builds a level", anchor: "build" },
+      { tag: "PLAYTESTERS", tone: "tester", text: "play the level", anchor: "play" },
+    ],
+  },
+  /** Subtitle under the Bilkent title, and the note its marker opens. */
   bilkentWhy: {
     line: "These courses made me love this work.",
     label: "Read more",
-    note: "These courses helped me see the work behind a game as a series of problems I could reason about. Algorithms made me think about how to find a solution efficiently; automata theory, about how to express rules and states precisely; reinforcement learning, about how decisions can improve through experience. I’m drawn to how those ways of thinking become something playable: a card game that follows its rules, agents that learn to cooperate, or a tool that searches for a level a designer wants.",
+    paragraphs: [
+      "What I loved about Algorithms I was figuring out how to adapt an algorithm I already knew. A problem would come with its own constraints, so I had to understand which parts of the original solution I could keep and what I needed to change to make it efficient for this particular case.",
+      "In Automata Theory and Formal Languages, I liked being able to design a whole system on paper. I could draw the states a machine could be in, decide what would move it from one state to another, and trace what it would do. That gave me a way to think through how a system should work before getting into the details of writing it.",
+      "What drew me to Reinforcement Learning and Dynamic Programming was how much the design of a learning system can shape the behaviour of an agent. I could choose what information the agent had, which actions it could take, and what counted as a reward. The part I found fascinating was seeing what it actually learned to do, then figuring out which of my choices had led to that behaviour.",
+    ],
+    highlights: ["adapt an algorithm", "design a whole system on paper", "shape the behaviour"],
   },
   courses: [
     {
@@ -293,41 +191,18 @@ export const frame1Config = {
     },
   ],
   assets: {
-    buasCampus: `${import.meta.env.BASE_URL}assets/frame1/buas-campus.jpg`,
+    buasCampus: `${import.meta.env.BASE_URL}assets/frame1/buas-scene.jpg`,
     buasLogo: `${import.meta.env.BASE_URL}assets/buas-logo.png`,
-    bilkentCampus: `${import.meta.env.BASE_URL}assets/frame1/bilkent-campus.jpg`,
+    bilkentCampus: `${import.meta.env.BASE_URL}assets/frame1/bilkent-scene.jpg`,
     bilkentLogo: `${import.meta.env.BASE_URL}assets/bilkent-logo.png`,
     portrait: `${import.meta.env.BASE_URL}assets/frame1/portrait-nocrown.jpg`,
   },
-  scrollCue: {
-    text: "Scroll to continue",
-    right: 0.04,
-    bottom: 0.04,
-    size: 13,
-    weight: 500,
-    opacity: 0.55,
-    nudge: 3,
-    every: 4,
-    fade: 0.6,
-  },
   /**
-   * Opening driven by the scroll. It replaces the timed opening below and
-   * the scroll cue. The window event is 0 at the start state and 1 at the full frame.
-   * Every part reads that value directly.
+   * Opening driven by the scroll. Progress is 0 at the cover and 1 at the full
+   * frame. Each segment eases with easeInOutCubic.
    */
   scrollOpening: {
-    hint: "Scroll to explore.",
-    /** Scroll distance from the start state to the full frame, in screen heights. */
-    distance: 1.2,
-  },
-  opening: {
-    bilkent: 160,
-    buas: 620,
-    middle: 1080,
-    sides: 1540,
-    name: 2020,
-  },
-  effects: {
-    OPENING_SEQUENCE: true,
+    /** Scroll distance from the cover to the full frame, in screen heights. */
+    distance: 1,
   },
 };
