@@ -9,14 +9,10 @@ export type ImageBox = {
 
 export type CardPoint = [number, number];
 
-export type LeadPart = {
+export type NoteParagraph = {
   text: string;
-  /** Drawn in gold (#EFC785). */
-  gold?: boolean;
-  /** Bold. A step above the heavier phrases. */
-  bold?: boolean;
-  /** Heavier than the body, in the body's own color. */
-  emphasis?: boolean;
+  /** Phrases drawn with the paper-note highlight. */
+  marks: readonly string[];
 };
 
 export const frame2Config = {
@@ -53,67 +49,44 @@ export const frame2Config = {
     feather: 18,
   },
   intro: {
-    left: 0.05,
-    top: 0.12,
-    /** Lowest scale applied to the headline size and the gaps when the block would collide. */
+    /** 72px from the left at 1440. */
+    left: 72 / 1440,
+    /** 112px from the top at 900. */
+    top: 112 / 900,
+    /** Lowest scale applied to the column when it would meet the logo or the hair. */
     minFit: 0.62,
     logoGap: 18,
     hairGap: 16,
     headline: {
-      /** Two lines. The info marker sits at the end of the last one. */
-      lines: [
-        "Pedro is a published online card game.",
-        "I wrote all the code, from the card animations to the multiplayer server.",
-      ],
-      /** This phrase is gold. The rest of the headline keeps the headline color. */
-      gold: "all the code",
-      color: "#F5EEE4",
-      weight: 800,
-      stretch: 80,
-      /**
-       * 2.3vw is 33px at 1440. There the first sentence stays on one line
-       * with room to spare, even where the narrow width of the font does not
-       * apply, and the same holds on wider screens.
-       */
-      min: 28,
-      preferred: 2.3,
-      max: 64,
+      text: "I programmed Pedro.",
+      color: "#F3E3C3",
+      size: 66,
       line: 1.05,
-      maxWidth: 0.46,
+      shadow:
+        "-2px -2px 0 rgba(58, 14, 9, 0.55), -4px -4px 0 rgba(58, 14, 9, 0.3), 0 3px 16px rgba(0, 0, 0, 0.5)",
     },
-    /** Info marker at the end of the headline. The note opens from attachWhyNote. */
+    /** The two sentences under the headline. The About LÖVE marker ends the first. */
+    prose: {
+      size: 22,
+      line: 1.4,
+      color: "#E3D9CA",
+      shadow: "0 1px 8px rgba(0, 0, 0, 0.6)",
+      /** Space under the headline, then under the first sentence. */
+      afterHeadline: 20,
+      between: 14,
+      gold: "#EFC785",
+    },
+    /** Info marker after "engine." The note opens from attachWhyNote. */
     love: {
       label: "About LÖVE",
-      note: "Pedro runs on LÖVE, the Lua framework also used to make Balatro. I built Pedro’s game-specific systems myself, including card animation, table layout, game rules, bots and multiplayer.",
-    },
-    lead: {
-      size: 17,
-      weight: 400,
-      /** Heavier than the body, in the body's own color. */
-      emphasis: 650,
-      /** Weight of a part marked bold, a step above the heavier phrases. */
-      bold: 700,
-      line: 1.55,
-      opacity: 0.88,
-      /** Matches the gap above the store badges. */
-      gap: 22,
-      /** Space between the two short paragraphs. */
-      paragraphGap: 11,
-      paragraphs: [
-        [
-          { text: "About " },
-          { text: "18,000 lines of Lua", gold: true },
-          {
-            text: ", covering gameplay, bots, interface and networking. I wrote the code myself, using ChatGPT for support.",
-          },
-        ],
-      ] as LeadPart[][],
+      note: "LÖVE is a free framework for making 2D games in Lua. It draws images and reads input, and leaves everything else to the programmer. Balatro was made with it too.",
     },
     stores: {
       height: 52,
       gap: 12,
       lift: 2,
-      above: 22,
+      /** Space under the second sentence. */
+      above: 28,
       appStore: "https://apps.apple.com/tr/app/pedro/id6757151351?l=tr",
       play: "https://play.google.com/store/apps/details?id=com.alperjoe.pedro&hl=tr",
       /**
@@ -123,48 +96,66 @@ export const frame2Config = {
        */
       playFile: { width: 646, height: 250, inset: 41, contentWidth: 564, contentHeight: 168 },
     },
+    /**
+     * One row under the store buttons: "How I built it", "or", "Pick a card."
+     * The row always reads the same, including after cards have been opened.
+     */
+    choice: {
+      /** Space under the store buttons. */
+      above: 48,
+      gap: 22,
+      size: 46,
+      orSize: 26,
+      gold: "#EFC785",
+      hover: "#F6D9A4",
+      orColor: "rgba(245, 238, 228, 0.72)",
+      /** The swash draws itself again on hover and keyboard focus. */
+      swash: 420,
+    },
+    /** Wide paper note opened by "How I built it". */
+    built: {
+      title: "How I built it",
+      width: 640,
+      /** From the left edge of the frame, at desktop sizes. */
+      left: 72,
+      paragraphs: [
+        {
+          text: "I worked with a designer on Pedro and wrote the game code myself. I used ChatGPT to talk through problems as I worked. I made the implementation decisions and put the game together one system at a time. From the start I split the code into three layers, the game on the phone, the server and a core that holds the rules, so each part could grow without breaking the others. Git kept a record of every change.",
+          marks: ["three layers"],
+        },
+        {
+          text: "Take a single turn. You tap a card on your phone. The game has to work out which card you touched, check whether you can play it, and show everyone at the table what happened. I used LÖVE to draw the game and handle input. I wrote the rules in a separate Lua module so the game on your phone and the multiplayer server could use the same code to decide whether a move was legal.",
+          marks: ["same code"],
+        },
+        {
+          text: "That separation helped when something went wrong. If two players saw different things after a move, I could check what the server had accepted, what it had sent to each phone, and what each phone had drawn. Keeping the rule checks on the server cut down the moments when phones fell out of sync.",
+          marks: ["out of sync"],
+        },
+        {
+          text: "Getting Pedro onto real phones took its own work. I tested it, prepared the builds for release and kept fixing problems after the first builds went out. By the time Pedro shipped, that one turn connected code I'd written all the way from a tap on the screen to the game running on someone else's device.",
+          marks: ["shipped"],
+        },
+      ] as NoteParagraph[],
+    },
   },
   line: {
-    before: "Pick a card.",
-    /** After one or two cards have been opened. */
-    again: "Pick another card.",
-    /** After all three cards have been opened. */
-    done: "That's my whole hand.",
-    /** 1.6× the previous 20px invitation. */
-    size: 32,
-    line: 1.2,
-    color: "#EFC785",
-    shadow: "drop-shadow(0 2px 12px rgba(0, 0, 0, 0.82))",
-    /** Share of Frame 2 that must be visible before the line appears. */
-    viewShare: 0.5,
-    /** The gold underline draws across this, and only while the line is hovered or focused. */
-    inviteDraw: 0.2,
-    cardGap: 16,
-    /** Gap kept between the line and the cards when the line sits to their left. */
-    sideGap: 20,
+    /** Clearance kept between the intro column and the cards. */
     blockGap: 14,
-    faceGap: 18,
-    /** Image fraction where Pedro's face begins beside the line. */
-    faceX: 0.63,
-    fade: 0.3,
-    /** Gold curve from the line down to the middle card. Its length comes from the layout. */
+    /** Gold curve from "Pick a card." to the middle card. */
     arrow: {
-      /** Room kept under the text inside the line block, which sets where the text sits. */
-      room: 58,
       stroke: 2.5,
-      /** Space between the last line of text and the start of the curve. */
-      startGap: 6,
-      /** Space between the tip and the top edge of the middle card. */
-      cardGap: 14,
-      /** Shortest curve kept between the text and the middle card, in px. */
-      min: 48,
-      /**
-       * Sideways pull on the curve's control point, past the tip, in px. Positive pulls right.
-       * Near 0 the curve lands straight down; larger values swing the end in at more of an angle.
-       */
+      /** Phone curve: sideways pull on the control point, past the tip, in px. */
       bend: 6,
+      /** Desktop curve: the control point sits this far above the start. */
+      lift: 46,
+      /** Desktop curve: how far along the start-to-end line the control point sits. */
+      along: 0.72,
+      /** Space to the right of "Pick a card." where the desktop curve begins. */
+      start: 16,
+      /** Down the text, where the desktop curve begins. */
+      startAt: 0.62,
       head: {
-        length: 11,
+        length: 12,
         /** Angle between each arm and the shaft, in degrees. */
         angle: 35,
       },
@@ -210,7 +201,7 @@ export const frame2Config = {
         ] satisfies CardPoint[],
         video: true,
         image: null,
-        body: "I built the systems for dealing, dragging and flipping cards, arranging the table across different screen sizes, and routing taps to the correct interface layer.",
+        body: "In an engine like Unity, an editor handles much of the layout and motion. LÖVE is low level and has no editor, so I worked these out myself with geometry and simple physics: where every card and button appears on the screen, and how it moves and reacts to a tap. On top of that I built dealing, dragging and flipping cards, a table layout that fits different screen sizes, and the routing that sends each tap to the right part of the interface.",
         links: [
           {
             label: "Read ui/CardAnimator.lua",
@@ -237,7 +228,7 @@ export const frame2Config = {
           src: `${base}assets/frame2/pedro-multiplayer.jpg`,
           alt: "Pedro's Join Room screen",
         },
-        body: "I wrote the multiplayer server myself, in Lua on plain TCP. It runs the rooms, keeps the only true copy of each game and checks every move. A player who drops can reconnect to their own seat, and bots take over the seats nobody is using. Offline games run the same game controller inside the app, so single player and online play follow exactly the same rules.",
+        body: "I wrote the multiplayer server in Lua on plain TCP. It runs the rooms, keeps the only true copy of each game, checks every move and sends each phone a snapshot of the table. A player who drops can reconnect to their own seat, and bots take over the seats nobody is using. Offline games run the same game controller inside the app, so single player and online play follow exactly the same rules.",
         links: [
           {
             label: "Read server/TcpServer.lua",
@@ -248,7 +239,7 @@ export const frame2Config = {
       {
         id: "rules" as const,
         title: "Rules and bots",
-        marks: ["one pure Lua module", "three memories", "no machine learning"],
+        marks: ["three memories"],
         points: [
           [0.6139, 0.5909],
           [0.6964, 0.6107],
@@ -264,7 +255,7 @@ export const frame2Config = {
           src: `${base}assets/frame2/pedro-rules.jpg`,
           alt: "Pedro's special cards rule book",
         },
-        body: "All the rules live in one pure Lua module with no LÖVE code in it, so the same rules run on the phone and on the server. My bots play by those rules. Each bot keeps three memories, its own hand, the cards it has seen in other hands and the cards already thrown, and decides its moves from them, with no machine learning.",
+        body: "The rules run a full turn and phase system, with cards and skills that affect each other. They contain no drawing code at all. My bots are rule-based and play by those same rules. Each bot keeps three memories, its own hand, the cards it has seen in other hands and the cards already thrown, and decides its moves from them.",
         links: [
           {
             label: "Read core/Rules.lua",
@@ -328,8 +319,6 @@ export const frame2Config = {
     gold: "#EFC785",
     goldHover: "#FFE7B5",
     titleSize: 32,
-    titleWeight: 700,
-    titleStretch: 100,
     bodySize: 16,
     bodyWeight: 400,
     bodyStretch: 100,
@@ -352,9 +341,15 @@ export const frame2Config = {
     margin: 24,
     /** Clears the site menu in the top corner. */
     top: 72,
-    /** Keeps both sentences within four lines at a phone width. */
-    headlineSize: 22,
-    leadSize: 15,
+    /**
+     * Black Chancery on a phone. A step under 40 so "I programmed Pedro."
+     * stays on one line in the column.
+     */
+    headlineSize: 38,
+    /** IM Fell English on a phone. */
+    proseSize: 17,
+    /** The choice row on a phone. "or" stays in proportion. */
+    choiceSize: 28,
     storeHeight: 44,
     /**
      * The part of the painting the stage shows, in image fractions. It always
@@ -366,12 +361,8 @@ export const frame2Config = {
     stageGap: 8,
     /** The painting fades in over this far from the top of the stage, in pixels. */
     fade: 90,
-    /**
-     * "Pick a card." sits this far from the left edge and from the top of the
-     * stage. The curve still lands on the middle card.
-     */
-    lineLeft: 18,
-    lineTop: 10,
+    /** Gutters around the "How I built it" note. */
+    noteGutter: 16,
     /** The open card sheet. */
     sheet: {
       background: "#1E0E0B",

@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Black Chancery";
+  src: url("../../public/assets/fonts/black-chancery.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 .frame2 {
   position: relative;
   width: 100%;
@@ -25,7 +33,8 @@
   transition: filter var(--dim-out) var(--close-ease);
 }
 
-.frame2.is-dim .frame2-scene {
+.frame2.is-dim .frame2-scene,
+.frame2.is-note .frame2-scene {
   filter: blur(var(--open-blur));
   transition-duration: var(--dim-in);
   transition-timing-function: var(--open-ease);
@@ -162,59 +171,173 @@
 
 .frame2-headline {
   margin: 0;
-  max-width: var(--headline-max);
-  font-family: var(--font-frame2), sans-serif;
-  font-weight: var(--headline-weight);
-  font-stretch: var(--headline-stretch);
+  font-family: var(--font-frame2), "Iowan Old Style", Georgia, serif;
+  font-weight: 400;
+  font-stretch: normal;
+  font-synthesis: none;
   font-size: calc(var(--headline-size) * var(--intro-fit));
   line-height: var(--headline-line);
+  letter-spacing: 0;
   color: var(--headline-color);
+  text-shadow: var(--headline-shadow);
 }
 
 .frame2-gold {
   color: #efc785;
 }
 
-.frame2-love-keep {
+.frame2-prose {
+  margin-top: calc(var(--prose-gap) * var(--intro-fit));
+  font-family: "IM Fell English", Georgia, serif;
+  font-weight: 400;
+  font-style: normal;
+  font-synthesis: none;
+  font-size: calc(var(--prose-size) * var(--intro-fit));
+  line-height: var(--prose-line);
+  color: var(--prose-color);
+}
+
+.frame2-prose p {
+  margin: 0;
+  white-space: nowrap;
+  text-shadow: var(--prose-shadow);
+}
+
+.frame2-prose p + p {
+  margin-top: calc(var(--prose-paragraph-gap) * var(--intro-fit));
+}
+
+.frame2-prose .frame2-gold,
+.frame2-num {
+  text-shadow: var(--prose-shadow);
+}
+
+.frame2-engine {
   white-space: nowrap;
 }
 
-.frame2-headline-line {
-  display: block;
+.frame2-num {
+  font-family: var(--font-frame2), Georgia, serif;
+  font-size: 1.08em;
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0.02em;
 }
 
-.frame2-lead {
-  margin: var(--lead-gap) 0 0;
-  /* Archivo at 17px: 46ch stays within 60 characters a line. */
-  max-width: 46ch;
-  font-weight: var(--lead-weight);
-  font-size: var(--lead-size);
-  line-height: var(--lead-line);
-  color: rgba(255, 255, 255, var(--lead-opacity));
+.frame2-prose button.why-button.why-button {
+  margin-left: 10px;
+  vertical-align: 2px;
 }
 
-.frame2-lead p {
+.frame2-choice {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: calc(var(--choice-gap) * var(--intro-fit));
+  margin-top: calc(var(--choice-above) * var(--intro-fit));
+  pointer-events: none;
+}
+
+.frame2-choice-rest {
+  display: inline-flex;
+  align-items: baseline;
+  gap: inherit;
+}
+
+.frame2-how {
+  position: relative;
   margin: 0;
+  padding: 0 0 10px;
+  border: 0;
+  background: none;
+  font-family: "IM Fell English", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: calc(var(--choice-size) * var(--intro-fit));
+  line-height: 1;
+  color: var(--choice-gold);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+  transition: color 180ms ease;
 }
 
-.frame2-lead p + p {
-  margin-top: var(--lead-paragraph-gap);
+.frame2-how:hover,
+.frame2-how:focus-visible {
+  color: var(--choice-hover);
 }
 
-.frame2-lead strong {
-  font-weight: var(--lead-strong);
-  color: inherit;
+.frame2-how:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
 }
 
-.frame2-lead strong.is-bold {
-  font-weight: var(--lead-bold);
+.frame2-how:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.frame2-swash {
+  position: absolute;
+  left: -2px;
+  bottom: -6px;
+  width: calc(100% + 4px);
+  height: 0.48em;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+}
+
+.frame2-swash path {
+  fill: none;
+  stroke: var(--choice-gold);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.frame2-how:hover .frame2-swash path,
+.frame2-how:focus-visible .frame2-swash path {
+  animation: frame2-swash-draw var(--swash-draw) ease-out;
+}
+
+@keyframes frame2-swash-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.frame2-or {
+  font-family: "IM Fell English", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: calc(var(--choice-or) * var(--intro-fit));
+  line-height: 1;
+  color: var(--choice-or-color);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+
+.frame2-pick {
+  font-family: "IM Fell English", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: calc(var(--choice-size) * var(--intro-fit));
+  line-height: 1;
+  color: var(--choice-gold);
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.82));
+  cursor: default;
 }
 
 .frame2-stores {
   display: flex;
   align-items: center;
   gap: var(--store-gap);
-  margin-top: var(--store-above);
+  margin-top: calc(var(--store-above) * var(--intro-fit));
   pointer-events: auto;
 }
 
@@ -255,96 +378,23 @@
   margin-left: calc(var(--play-pad) * -1);
 }
 
-.frame2-line {
-  position: absolute;
-  z-index: 6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: max-content;
-  margin: 0;
-  pointer-events: none;
-  white-space: nowrap;
-  transition: opacity var(--line-fade) ease;
-}
-
-.frame2-line-text {
-  margin: 0;
-}
-
-.frame2-line.is-hidden {
-  opacity: 0;
-}
-
-.frame2-line-text {
-  position: relative;
-  display: inline-block;
-  max-width: none;
-  padding-bottom: 6px;
-  font-family: var(--font-pedro), serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: var(--line-size);
-  line-height: var(--line-height);
-  color: var(--line-color);
-  filter: var(--line-shadow);
-  pointer-events: auto;
-  cursor: default;
-}
-
-.frame2-line-text:focus {
-  outline: none;
-}
-
-.frame2-line.is-hidden .frame2-line-text {
-  pointer-events: none;
-}
-
-.frame2-invite-rule {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 6px;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.frame2-invite-rule path {
-  fill: none;
-  stroke: var(--line-color);
-  stroke-width: 1.15;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  transition: stroke-dashoffset var(--invite-draw) linear;
-}
-
-.frame2-line-text:hover .frame2-invite-rule path,
-.frame2-line-text:focus-visible .frame2-invite-rule path {
-  stroke-dashoffset: 0;
-}
-
-.frame2-arrow-space {
-  height: var(--arrow-room);
-}
-
 .frame2-arrow {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
   overflow: visible;
   pointer-events: none;
 }
 
 .frame2-arrow path {
   fill: none;
-  stroke: var(--line-color);
+  stroke: #efc785;
   stroke-width: var(--arrow-stroke);
   stroke-linecap: round;
   stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .frame2-seen {
@@ -505,9 +555,10 @@
 .frame2-copy h2 {
   margin: 0;
   padding-right: 52px;
-  font-family: var(--font-frame2), sans-serif;
-  font-weight: var(--open-title-weight);
-  font-stretch: var(--open-title-stretch);
+  font-family: var(--font-frame2), Georgia, serif;
+  font-weight: 400;
+  font-stretch: normal;
+  font-synthesis: none;
   font-size: var(--open-title-size);
   line-height: 1.15;
   color: #f5eee4;
@@ -640,6 +691,139 @@
   left: calc(100% - var(--gem-at));
 }
 
+/* Wide paper note for "How I built it". The scene behind it is dimmed and blurred. */
+.frame2-built {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+}
+
+.frame2-built-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 6, 4, 0.5);
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+.frame2-built.is-on .frame2-built-veil {
+  opacity: 1;
+}
+
+.frame2-built-sheet {
+  position: absolute;
+  z-index: 1;
+  left: var(--note-left);
+  top: 50%;
+  width: var(--note-width);
+  max-height: calc(100% - 48px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 30px 36px 32px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.7), rgba(255, 252, 247, 0) 32%),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.35), rgba(150, 110, 62, 0.07)),
+    #f3ebdd;
+  color: #2a2520;
+  border-radius: 3px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-text), sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.62;
+  opacity: 0;
+  transform: translateY(calc(-50% + 14px)) rotate(-0.4deg);
+  transition:
+    opacity 240ms ease,
+    transform 240ms ease;
+  outline: none;
+}
+
+.frame2-built.is-on .frame2-built-sheet {
+  opacity: 1;
+  transform: translateY(-50%) rotate(-0.4deg);
+}
+
+.frame2-built-sheet h3 {
+  margin: 0 48px 14px 0;
+  font-family: var(--font-name), "Iowan Old Style", Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.frame2-built-sheet p {
+  margin: 0 0 12px;
+}
+
+.frame2-built-sheet p:last-child {
+  margin-bottom: 0;
+}
+
+.frame2-built-sheet mark {
+  background: linear-gradient(
+    transparent 45%,
+    rgba(239, 199, 133, 0.55) 45%,
+    rgba(239, 199, 133, 0.55) 92%,
+    transparent 92%
+  );
+  color: inherit;
+  padding: 0 1px;
+}
+
+.frame2-built-close {
+  position: sticky;
+  z-index: 1;
+  float: right;
+  width: 30px;
+  height: 30px;
+  margin: -4px -8px 0 8px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(42, 37, 32, 0.08);
+  color: #2a2520;
+  font-family: var(--font-text), sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 30px;
+  cursor: pointer;
+}
+
+.frame2-built-close:hover {
+  background: rgba(42, 37, 32, 0.16);
+}
+
+.frame2-built-close:focus-visible {
+  outline: 2px solid #2a2520;
+  outline-offset: 2px;
+}
+
+.frame2.is-phone .frame2-built-sheet {
+  left: var(--note-gutter);
+  width: calc(100% - 2 * var(--note-gutter));
+  top: var(--note-gutter);
+  max-height: calc(100% - 2 * var(--note-gutter));
+  transform: none;
+}
+
+.frame2.is-phone .frame2-built.is-on .frame2-built-sheet {
+  transform: none;
+}
+
+.frame2.is-reduced .frame2-built-sheet,
+.frame2.is-reduced .frame2-built.is-on .frame2-built-sheet {
+  opacity: 1;
+  transform: translateY(-50%) rotate(-0.4deg);
+}
+
+.frame2.is-phone.is-reduced .frame2-built-sheet,
+.frame2.is-phone.is-reduced .frame2-built.is-on .frame2-built-sheet {
+  transform: none;
+}
+
 /*
   Phones: the headline, the body and the store badges in one column on top,
   and the painting cropped to Pedro's face and his cards under them. The
@@ -656,17 +840,47 @@
   max-width: none;
   padding: var(--phone-top) var(--phone-margin) 0;
   --headline-size: var(--phone-headline);
-  --lead-gap: 16px;
+  --prose-size: var(--phone-prose);
+  --choice-size: var(--phone-choice);
+  --choice-or: calc(var(--phone-choice) * 26 / 46);
+  --prose-gap: 14px;
+  --prose-paragraph-gap: 10px;
   --store-above: 18px;
+  --choice-above: 22px;
+  --choice-gap: 14px;
 }
 
 .frame2.is-phone .frame2-headline {
-  max-width: none;
+  font-size: var(--phone-headline);
 }
 
-.frame2.is-phone .frame2-lead {
-  max-width: none;
-  font-size: var(--phone-lead);
+.frame2.is-phone .frame2-prose {
+  margin-top: var(--prose-gap);
+  font-size: var(--phone-prose);
+}
+
+.frame2.is-phone .frame2-prose p {
+  white-space: normal;
+}
+
+.frame2.is-phone .frame2-prose p + p {
+  margin-top: var(--prose-paragraph-gap);
+}
+
+.frame2.is-phone .frame2-choice {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  margin-top: var(--choice-above);
+  column-gap: var(--choice-gap);
+}
+
+.frame2.is-phone .frame2-how,
+.frame2.is-phone .frame2-pick {
+  font-size: var(--phone-choice);
+}
+
+.frame2.is-phone .frame2-or {
+  font-size: var(--choice-or);
 }
 
 /* The sheet covers the screen wherever the page has scrolled to. */
@@ -726,8 +940,10 @@
 
 .frame2-phone-copy h2 {
   margin: 0;
-  font-family: var(--font-frame2), sans-serif;
-  font-weight: var(--open-title-weight);
+  font-family: var(--font-frame2), Georgia, serif;
+  font-weight: 400;
+  font-stretch: normal;
+  font-synthesis: none;
   font-size: var(--sheet-title);
   line-height: 1.15;
   color: #f5eee4;
@@ -755,8 +971,12 @@
   animation: none;
 }
 
-.frame2.is-reduced .frame2-invite-rule path {
+.frame2.is-reduced .frame2-swash path,
+.frame2.is-reduced .frame2-built,
+.frame2.is-reduced .frame2-built-sheet,
+.frame2.is-reduced .frame2-built-veil {
   transition: none;
+  animation: none;
 }
 
 .frame2.is-reduced .frame2-flight {
@@ -771,7 +991,6 @@
 .frame2.is-reduced .frame2-flip,
 .frame2.is-reduced .frame2-picture-card,
 .frame2.is-reduced .frame2-copy,
-.frame2.is-reduced .frame2-line,
 .frame2.is-reduced .frame2-scene,
 .frame2.is-reduced .frame2-veil {
   transition: none;
@@ -782,7 +1001,10 @@
     animation: none;
   }
 
-  .frame2-invite-rule path {
+  .frame2-swash path,
+  .frame2-how:hover .frame2-swash path,
+  .frame2-how:focus-visible .frame2-swash path {
+    animation: none;
     transition: none;
   }
 
@@ -792,7 +1014,8 @@
   .frame2-picture-card,
   .frame2-copy,
   .frame2-veil,
-  .frame2-line,
+  .frame2-built-veil,
+  .frame2-built-sheet,
   .frame2-store {
     transition: none;
   }

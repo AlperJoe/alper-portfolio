@@ -94,25 +94,11 @@ function seenMark(card: Frame2Card, image: HeroPlacement): CSSProperties {
 
 type Point = { x: number; y: number };
 
-type LineMode = "above" | "side";
+type ArrowPaths = { shaft: string; head: string };
 
-type ArrowDraw = {
-  d: string;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-};
-
-/**
- * One quadratic curve, so it has a single bend, then an open V head along its final direction.
- * Above the cards the bend is the small hand-drawn hook. From the left, the curve runs right
- * and then down onto the card.
- */
-function arrowDraw(start: Point, tip: Point, mode: LineMode): ArrowDraw {
-  const { bend, head } = frame2Config.line.arrow;
-  const control =
-    mode === "side" ? { x: tip.x, y: start.y } : { x: tip.x + bend, y: (start.y + tip.y) / 2 };
+/** One quadratic curve and an open V head along its final direction. */
+function arrowFrom(start: Point, tip: Point, control: Point): ArrowPaths {
+  const { head } = frame2Config.line.arrow;
   const ex = tip.x - control.x;
   const ey = tip.y - control.y;
   const end = Math.hypot(ex, ey) || 1;
@@ -130,102 +116,10 @@ function arrowDraw(start: Point, tip: Point, mode: LineMode): ArrowDraw {
   const a = arm(1);
   const b = arm(-1);
   const f = (value: number) => value.toFixed(2);
-  const d = [
-    `M ${f(start.x)} ${f(start.y)}`,
-    `Q ${f(control.x)} ${f(control.y)} ${f(tip.x)} ${f(tip.y)}`,
-    `L ${f(a.x)} ${f(a.y)}`,
-    `M ${f(tip.x)} ${f(tip.y)}`,
-    `L ${f(b.x)} ${f(b.y)}`,
-  ].join(" ");
-  const points = [start, tip, control, a, b];
-  const pad = head.length;
-  const minX = Math.min(...points.map((point) => point.x)) - pad;
-  const minY = Math.min(...points.map((point) => point.y)) - pad;
-  const maxX = Math.max(...points.map((point) => point.x)) + pad;
-  const maxY = Math.max(...points.map((point) => point.y)) + pad;
-  return { d, left: minX, top: minY, width: Math.max(1, maxX - minX), height: Math.max(1, maxY - minY) };
-}
-
-type Box = { left: number; top: number; right: number; bottom: number };
-
-function boxesOverlap(a: Box, b: Box, pad = 0) {
-  return a.left < b.right + pad && a.right > b.left - pad && a.top < b.bottom + pad && a.bottom > b.top - pad;
-}
-
-function textBox(left: number, top: number, width: number, height: number): Box {
-  return { left, top, right: left + width, bottom: top + height };
-}
-
-function hitsCards(left: number, top: number, width: number, height: number, cards: Box[]) {
-  const box = textBox(left, top, width, height);
-  return cards.some((card) => boxesOverlap(box, card, 1));
-}
-
-function sharesX(left: number, width: number, box: Box) {
-  return left < box.right && left + width > box.left;
-}
-
-/**
- * Keeps today's place when the curve already has room. Otherwise lifts the line.
- * When the intro is in the way, parks the line left of the cards.
- */
-function placeLine(input: {
-  intro: Box;
-  textWidth: number;
-  textHeight: number;
-  lineHeight: number;
-  cards: Box[];
-  cardMidY: number;
-  faceLeft: number;
-}): { left: number; top: number; mode: LineMode } {
-  const { intro, textWidth, textHeight, lineHeight, cards, cardMidY, faceLeft } = input;
-  const { min, startGap, cardGap } = frame2Config.line.arrow;
-  const { blockGap, sideGap, cardGap: belowCards } = frame2Config.line;
-  const margin = 8;
-  const cardTop = Math.min(cards[0].top, cards[1].top);
-  const pocketRight = faceLeft;
-  const pocketLeft = cards[0].left;
-  let left = pocketLeft + Math.max(0, pocketRight - pocketLeft - textWidth) / 2;
-  if (left + textWidth > pocketRight) left = Math.max(margin, pocketRight - textWidth);
-
-  const spanAt = (top: number) => cardMidY - cardGap - (top + textHeight) - startGap;
-  let top = cardTop - belowCards - lineHeight;
-  const belowIntro = intro.bottom + blockGap;
-  if (top < belowIntro) top = belowIntro;
-
-  const ceiling = sharesX(left, textWidth, intro) ? belowIntro : margin;
-  const needsMove = spanAt(top) < min || hitsCards(left, top, textWidth, textHeight, cards);
-  if (!needsMove) return { left, top, mode: "above" };
-
-  let next = cardMidY - cardGap - textHeight - startGap - min;
-  for (const card of cards) {
-    if (sharesX(left, textWidth, card)) next = Math.min(next, card.top - 2 - textHeight);
-  }
-  if (next >= ceiling - 0.5 && !hitsCards(left, Math.max(next, ceiling), textWidth, textHeight, cards)) {
-    return { left, top: Math.max(next, ceiling), mode: "above" };
-  }
-  if (
-    spanAt(ceiling) >= min &&
-    !hitsCards(left, ceiling, textWidth, textHeight, cards)
-  ) {
-    return { left, top: ceiling, mode: "above" };
-  }
-
-  const cardsLeft = Math.min(...cards.map((card) => card.left));
-  const sideLeft = Math.max(margin, cardsLeft - sideGap - textWidth);
-  const sideCeiling = sharesX(sideLeft, textWidth, intro) ? belowIntro : margin;
-  let sideTop = cardMidY - cardGap - textHeight - startGap - min;
-  for (const card of cards) {
-    if (sharesX(sideLeft, textWidth, card)) sideTop = Math.min(sideTop, card.top - 2 - textHeight);
-  }
-  if (sideTop < sideCeiling) sideTop = sideCeiling;
-  if (hitsCards(sideLeft, sideTop, textWidth, textHeight, cards)) {
-    sideTop = Math.max(margin, Math.min(...cards.map((card) => card.top)) - sideGap - textHeight);
-    if (boxesOverlap(textBox(sideLeft, sideTop, textWidth, textHeight), intro, 0)) {
-      sideTop = belowIntro;
-    }
-  }
-  return { left: sideLeft, top: Math.max(margin, sideTop), mode: "side" };
+  return {
+    shaft: `M ${f(start.x)} ${f(start.y)} Q ${f(control.x)} ${f(control.y)} ${f(tip.x)} ${f(tip.y)}`,
+    head: `M ${f(a.x)} ${f(a.y)} L ${f(tip.x)} ${f(tip.y)} L ${f(b.x)} ${f(b.y)}`,
+  };
 }
 
 /** Top-edge midpoint of a card button, measured from its live box. */
@@ -409,8 +303,16 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Gold on the given phrases. Every other word stays as it was written. */
-function MarkedCopy({ body, marks }: { body: string; marks: readonly string[] }) {
+/** Gold in a card, or the paper highlight in the wide note. The other words stay as written. */
+function MarkedCopy({
+  body,
+  marks,
+  highlight = false,
+}: {
+  body: string;
+  marks: readonly string[];
+  highlight?: boolean;
+}) {
   if (marks.length === 0) return <p>{body}</p>;
   const source = [...marks].sort((a, b) => b.length - a.length);
   const pattern = new RegExp(source.map(escapeRegExp).join("|"), "g");
@@ -420,48 +322,18 @@ function MarkedCopy({ body, marks }: { body: string; marks: readonly string[] })
     const at = match.index ?? 0;
     if (at > cursor) parts.push(body.slice(cursor, at));
     parts.push(
-      <span key={at} className="frame2-gold">
-        {match[0]}
-      </span>,
+      highlight ? (
+        <mark key={at}>{match[0]}</mark>
+      ) : (
+        <span key={at} className="frame2-gold">
+          {match[0]}
+        </span>
+      ),
     );
     cursor = at + match[0].length;
   }
   if (cursor < body.length) parts.push(body.slice(cursor));
   return <p>{parts}</p>;
-}
-
-function GoldPhrase({ text, gold }: { text: string; gold: string }) {
-  const at = text.indexOf(gold);
-  if (at < 0) return <>{text}</>;
-  return (
-    <>
-      {text.slice(0, at)}
-      <span className="frame2-gold">{gold}</span>
-      {text.slice(at + gold.length)}
-    </>
-  );
-}
-
-/** One line per entry. The last word of the last line keeps the trailing marker beside it. */
-function Headline({ lines, gold, trailing }: { lines: readonly string[]; gold: string; trailing?: ReactNode }) {
-  return (
-    <>
-      {lines.map((line, index) => {
-        const last = index === lines.length - 1;
-        const cut = last ? line.lastIndexOf(" ") + 1 : line.length;
-        return (
-          <span key={line} className="frame2-headline-line">
-            <GoldPhrase text={line.slice(0, cut)} gold={gold} />
-            {last ? (
-              <span className="frame2-love-keep">
-                {line.slice(cut)} {trailing}
-              </span>
-            ) : null}
-          </span>
-        );
-      })}
-    </>
-  );
 }
 
 /** The info marker after the headline. Its look comes from whyNote. */
@@ -473,43 +345,11 @@ function LoveInfo({ buttonRef }: { buttonRef: RefObject<HTMLButtonElement | null
   );
 }
 
-function LeadCopy() {
+/** Hand-drawn gold swash under "How I built it", the same stroke as the arrow. */
+function ChoiceSwash() {
   return (
-    <div className="frame2-lead">
-      {frame2Config.intro.lead.paragraphs.map((paragraph) => (
-        <p key={paragraph.map((part) => part.text).join("")}>
-          {paragraph.map((part, index) => {
-            const key = `${index}-${part.text}`;
-            if (part.gold) {
-              return (
-                <span key={key} className="frame2-gold">
-                  {part.text}
-                </span>
-              );
-            }
-            if (part.bold) {
-              return (
-                <strong key={key} className="is-bold">
-                  {part.text}
-                </strong>
-              );
-            }
-            if (part.emphasis) return <strong key={key}>{part.text}</strong>;
-            return <span key={key}>{part.text}</span>;
-          })}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-function InviteRule() {
-  return (
-    <svg className="frame2-invite-rule" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        d="M0.8 3.7 C 10 2.2, 16 4.6, 28 3.4 C 40 2.1, 48 4.7, 60 3.3 C 72 2, 82 4.5, 92 3.2 C 95.5 2.7, 98 3.6, 99.3 2.9"
-        pathLength={1}
-      />
+    <svg className="frame2-swash" viewBox="0 0 250 22" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M3 14 C 40 19, 120 15, 246 5" pathLength={1} />
     </svg>
   );
 }
@@ -543,11 +383,14 @@ export function Frame2() {
   const phone = usePhone();
   const frameRef = useRef<HTMLElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
-  const lineRef = useRef<HTMLDivElement>(null);
+  const pickRef = useRef<HTMLSpanElement>(null);
   const grainRef = useRef<HTMLCanvasElement>(null);
   const emberRef = useRef<HTMLCanvasElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const loveRef = useRef<HTMLButtonElement>(null);
+  const builtRef = useRef<HTMLButtonElement>(null);
+  const builtDialogRef = useRef<HTMLDivElement>(null);
+  const builtCloseRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const flightRef = useRef<HTMLDivElement>(null);
@@ -555,6 +398,7 @@ export function Frame2() {
   const buttonRefs = useRef<Partial<Record<Frame2CardId, HTMLButtonElement>>>({});
   const placeRef = useRef<HeroPlacement | null>(null);
   const hadOpen = useRef(false);
+  const builtWasOpen = useRef(false);
 
   const [place, setPlace] = useState<HeroPlacement>(() =>
     placeHero(window.innerWidth, window.innerHeight, frame2Config.image.bottomClear, heroOptions),
@@ -563,19 +407,11 @@ export function Frame2() {
   const [stage, setStage] = useState<{ top: number; height: number } | null>(null);
   const [open, setOpen] = useState<OpenCard | null>(null);
   const [copyNeed, setCopyNeed] = useState(0);
-  const [inView, setInView] = useState(false);
   const [seen, setSeen] = useState<Frame2CardId[]>([]);
-  const lineOn = inView && !open;
   const [introFit, setIntroFit] = useState(1);
-  const [lineBox, setLineBox] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    textBottom: number;
-    mode: LineMode;
-    tipX: number;
-    tipY: number;
-  } | null>(null);
+  const [arrow, setArrow] = useState<ArrowPaths | null>(null);
+  const [built, setBuilt] = useState(false);
+  const [builtOn, setBuiltOn] = useState(false);
   placeRef.current = place;
 
   useLayoutEffect(() => {
@@ -621,44 +457,46 @@ export function Frame2() {
   useLayoutEffect(() => {
     const frame = frameRef.current;
     const intro = introRef.current;
-    const line = lineRef.current;
-    if (!frame || !intro || !line) return;
+    const pick = pickRef.current;
+    if (!frame || !intro || !pick) return;
 
-    /**
-     * Phones: the line sits at the top of the stage, left of Pedro's hair, and
-     * its curve drops onto the middle card.
-     */
-    const placePhoneLine = () => {
-      const settings = frame2Config.phone;
+    /** Gold curve from "Pick a card." onto the top edge of the middle card. */
+    const measureArrow = () => {
       const frameRect = frame.getBoundingClientRect();
+      const pickRect = pick.getBoundingClientRect();
       const middleCard = frame2Config.cards.items[1];
       const middleNode = buttonRefs.current[middleCard.id];
-      const cardMid = middleNode ? liveTopMid(middleCard, middleNode, frameRect) : cardTopMid(middleCard.points, place);
-      const lastText = line.querySelector<HTMLElement>(".frame2-line-text");
-      const textBottom = lastText ? lastText.offsetTop + lastText.offsetHeight : 0;
-      const lineWidth = line.offsetWidth;
-      const { min, startGap, cardGap } = frame2Config.line.arrow;
-      const top = Math.min((stage?.top ?? 0) + settings.lineTop, cardMid.y - cardGap - min - startGap - textBottom);
-      const left = settings.lineLeft;
-      setIntroFit(1);
-      setLineBox((current) =>
-        current &&
-        current.mode === "above" &&
-        Math.abs(current.left - left) < 0.5 &&
-        Math.abs(current.top - top) < 0.5 &&
-        Math.abs(current.width - lineWidth) < 0.5 &&
-        Math.abs(current.textBottom - textBottom) < 0.5 &&
-        Math.abs(current.tipX - cardMid.x) < 0.5 &&
-        Math.abs(current.tipY - cardMid.y) < 0.5
-          ? current
-          : { left, top, width: lineWidth, textBottom, mode: "above", tipX: cardMid.x, tipY: cardMid.y },
+      if (pickRect.width <= 0) {
+        setArrow((current) => (current === null ? current : null));
+        return;
+      }
+      const tip = middleNode
+        ? liveTopMid(middleCard, middleNode, frameRect)
+        : cardTopMid(middleCard.points, place);
+      const { bend, lift, along, start: startGap, startAt } = frame2Config.line.arrow;
+      const start = phone
+        ? {
+            x: pickRect.left - frameRect.left + pickRect.width / 2,
+            y: pickRect.bottom - frameRect.top + 8,
+          }
+        : {
+            x: pickRect.right - frameRect.left + startGap,
+            y: pickRect.top - frameRect.top + pickRect.height * startAt,
+          };
+      const control = phone
+        ? { x: tip.x + bend, y: (start.y + tip.y) / 2 }
+        : { x: start.x + (tip.x - start.x) * along, y: start.y - lift };
+      const next = arrowFrom(start, tip, control);
+      setArrow((current) =>
+        current && current.shaft === next.shaft && current.head === next.head ? current : next,
       );
     };
 
     const fitBlock = () => {
       if (phone) {
         intro.style.setProperty("--intro-fit", "1");
-        placePhoneLine();
+        setIntroFit((current) => (current === 1 ? current : 1));
+        measureArrow();
         return;
       }
       const logoTop = place.top + frame2Config.regions.logo.y * place.height;
@@ -666,7 +504,6 @@ export function Frame2() {
       const cardTop = Math.min(
         ...frame2Config.cards.items.slice(0, 2).map((card) => cardBounds(card.points, place).top),
       );
-      const faceLeft = place.left + frame2Config.line.faceX * place.width - frame2Config.line.faceGap;
       const frameRect = frame.getBoundingClientRect();
       let fit = 1;
 
@@ -675,11 +512,7 @@ export function Frame2() {
         const rect = intro.getBoundingClientRect();
         const bottom = rect.bottom - frameRect.top;
         const right = rect.right - frameRect.left;
-        // The body stays 17px. The invitation finds its own place beside or above the cards.
-        const limit = Math.min(
-          logoTop - frame2Config.intro.logoGap,
-          cardTop - frame2Config.line.blockGap,
-        );
+        const limit = Math.min(logoTop - frame2Config.intro.logoGap, cardTop - frame2Config.line.blockGap);
         const clear = bottom <= limit + 0.5 && right <= hairLeft - frame2Config.intro.hairGap;
         if (clear) break;
         const next = Math.max(frame2Config.intro.minFit, Math.round((fit - 0.04) * 1000) / 1000);
@@ -687,67 +520,8 @@ export function Frame2() {
         fit = next;
       }
 
-      const lineWidth = line.offsetWidth;
-      const lineHeight = line.offsetHeight;
-      const introRect = intro.getBoundingClientRect();
-      const introBox = {
-        left: introRect.left - frameRect.left,
-        top: introRect.top - frameRect.top,
-        right: introRect.right - frameRect.left,
-        bottom: introRect.bottom - frameRect.top,
-      };
-      const cardBoxes = frame2Config.cards.items.map((card) => {
-        const node = buttonRefs.current[card.id];
-        if (!node) {
-          const box = cardBounds(card.points, place);
-          return { left: box.left, top: box.top, right: box.left + box.width, bottom: box.top + box.height };
-        }
-        const rect = node.getBoundingClientRect();
-        return {
-          left: rect.left - frameRect.left,
-          top: rect.top - frameRect.top,
-          right: rect.right - frameRect.left,
-          bottom: rect.bottom - frameRect.top,
-        };
-      });
-      const middleCard = frame2Config.cards.items[1];
-      const middleNode = buttonRefs.current[middleCard.id];
-      const cardMid = middleNode
-        ? liveTopMid(middleCard, middleNode, frameRect)
-        : cardTopMid(middleCard.points, place);
-      const lastText = line.querySelector<HTMLElement>(".frame2-line-text");
-      const textBottom = lastText ? lastText.offsetTop + lastText.offsetHeight : 0;
-      const placed = placeLine({
-        intro: introBox,
-        textWidth: lineWidth,
-        textHeight: textBottom,
-        lineHeight,
-        cards: cardBoxes,
-        cardMidY: cardMid.y,
-        faceLeft,
-      });
-
       setIntroFit((current) => (Math.abs(current - fit) < 0.001 ? current : fit));
-      setLineBox((current) =>
-        current &&
-        current.mode === placed.mode &&
-        Math.abs(current.left - placed.left) < 0.5 &&
-        Math.abs(current.top - placed.top) < 0.5 &&
-        Math.abs(current.width - lineWidth) < 0.5 &&
-        Math.abs(current.textBottom - textBottom) < 0.5 &&
-        Math.abs(current.tipX - cardMid.x) < 0.5 &&
-        Math.abs(current.tipY - cardMid.y) < 0.5
-          ? current
-          : {
-              left: placed.left,
-              top: placed.top,
-              width: lineWidth,
-              textBottom,
-              mode: placed.mode,
-              tipX: cardMid.x,
-              tipY: cardMid.y,
-            },
-      );
+      measureArrow();
     };
 
     fitBlock();
@@ -760,7 +534,7 @@ export function Frame2() {
     return () => {
       cancelled = true;
     };
-  }, [place, seen.length, phone, stage]);
+  }, [place, phone, stage]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -922,20 +696,46 @@ export function Frame2() {
     return () => attached.destroy();
   }, []);
 
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setInView(Boolean(entry?.isIntersecting));
-      },
-      { threshold: frame2Config.line.viewShare },
-    );
-    observer.observe(frame);
-    return () => observer.disconnect();
-  }, []);
+  useScrollLock(Boolean(open) || built);
 
-  useScrollLock(Boolean(open));
+  useEffect(() => {
+    if (!built) {
+      setBuiltOn(false);
+      if (builtWasOpen.current) builtRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    builtWasOpen.current = true;
+    const frameId = window.requestAnimationFrame(() => setBuiltOn(true));
+    const dialog = builtDialogRef.current;
+    builtCloseRef.current?.focus({ preventScroll: true });
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setBuilt(false);
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+      const items = [...dialog.querySelectorAll<HTMLElement>("button, a[href]")].filter(
+        (item) => !item.hasAttribute("disabled"),
+      );
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialog.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [built]);
 
   function requestClose() {
     setOpen((current) => {
@@ -1085,7 +885,9 @@ export function Frame2() {
   const playPad = storeHeight * (playFile.inset / playFile.contentHeight);
   const playVisibleWidth = storeHeight * (playFile.contentWidth / playFile.contentHeight);
   const headline = frame2Config.intro.headline;
-  const lead = frame2Config.intro.lead;
+  const prose = frame2Config.intro.prose;
+  const choice = frame2Config.intro.choice;
+  const builtNote = frame2Config.intro.built;
 
   function onFlightTransition(event: TransitionEvent<HTMLDivElement>) {
     if (reduced || event.propertyName !== "transform") return;
@@ -1116,8 +918,6 @@ export function Frame2() {
     "--open-well-top": motion.wellTop,
     "--open-well-bottom": motion.wellBottom,
     "--open-title-size": `${motion.titleSize}px`,
-    "--open-title-weight": String(motion.titleWeight),
-    "--open-title-stretch": `${motion.titleStretch}%`,
     "--open-body-size": `${motion.bodySize}px`,
     "--open-body-weight": String(motion.bodyWeight),
     "--open-body-stretch": `${motion.bodyStretch}%`,
@@ -1130,20 +930,24 @@ export function Frame2() {
     "--intro-left": `${frame2Config.intro.left * 100}%`,
     "--intro-top": `${frame2Config.intro.top * 100}%`,
     "--intro-fit": String(introFit),
-    "--headline-max": `${frameWidth * headline.maxWidth}px`,
-    "--headline-weight": String(headline.weight),
-    "--headline-stretch": `${headline.stretch}%`,
-    "--headline-size": `clamp(${headline.min}px, ${headline.preferred}vw, ${headline.max}px)`,
+    "--headline-size": `${headline.size}px`,
     "--headline-line": String(headline.line),
     "--headline-color": headline.color,
-    "--lead-size": `${lead.size}px`,
-    "--lead-weight": String(lead.weight),
-    "--lead-strong": String(lead.emphasis),
-    "--lead-bold": String(lead.bold),
-    "--lead-line": String(lead.line),
-    "--lead-opacity": String(lead.opacity),
-    "--lead-gap": `${lead.gap}px`,
-    "--lead-paragraph-gap": `${lead.paragraphGap}px`,
+    "--headline-shadow": headline.shadow,
+    "--prose-size": `${prose.size}px`,
+    "--prose-line": String(prose.line),
+    "--prose-color": prose.color,
+    "--prose-shadow": prose.shadow,
+    "--prose-gap": `${prose.afterHeadline}px`,
+    "--prose-paragraph-gap": `${prose.between}px`,
+    "--choice-above": `${choice.above}px`,
+    "--choice-gap": `${choice.gap}px`,
+    "--choice-size": `${choice.size}px`,
+    "--choice-or": `${choice.orSize}px`,
+    "--choice-gold": choice.gold,
+    "--choice-hover": choice.hover,
+    "--choice-or-color": choice.orColor,
+    "--swash-draw": `${choice.swash}ms`,
     "--store-h": `${storeHeight}px`,
     "--store-gap": `${frame2Config.intro.stores.gap}px`,
     "--store-lift": `${frame2Config.intro.stores.lift}px`,
@@ -1151,18 +955,15 @@ export function Frame2() {
     "--play-img-h": `${playImgHeight}px`,
     "--play-pad": `${playPad}px`,
     "--play-visible-w": `${playVisibleWidth}px`,
-    "--line-size": `${frame2Config.line.size}px`,
-    "--line-height": String(frame2Config.line.line),
-    "--line-color": frame2Config.line.color,
-    "--line-shadow": frame2Config.line.shadow,
-    "--line-fade": `${frame2Config.line.fade}s`,
-    "--invite-draw": `${frame2Config.line.inviteDraw}s`,
-    "--arrow-room": `${frame2Config.line.arrow.room}px`,
     "--arrow-stroke": `${frame2Config.line.arrow.stroke}px`,
     "--phone-margin": `${frame2Config.phone.margin}px`,
     "--phone-top": `${frame2Config.phone.top}px`,
     "--phone-headline": `${frame2Config.phone.headlineSize}px`,
-    "--phone-lead": `${frame2Config.phone.leadSize}px`,
+    "--phone-prose": `${frame2Config.phone.proseSize}px`,
+    "--phone-choice": `${frame2Config.phone.choiceSize}px`,
+    "--note-left": `${builtNote.left}px`,
+    "--note-width": `${builtNote.width}px`,
+    "--note-gutter": `${frame2Config.phone.noteGutter}px`,
     "--sheet-bg": frame2Config.phone.sheet.background,
     "--sheet-title": `${frame2Config.phone.sheet.titleSize}px`,
     "--sheet-body": `${frame2Config.phone.sheet.bodySize}px`,
@@ -1174,43 +975,11 @@ export function Frame2() {
   const heroFade = stage
     ? `linear-gradient(to bottom, transparent ${(stage.top - place.top).toFixed(1)}px, #000 ${(stage.top - place.top + frame2Config.phone.fade).toFixed(1)}px)`
     : undefined;
-  const lineCopy =
-    seen.length === 0
-      ? frame2Config.line.before
-      : seen.length < frame2Config.cards.items.length
-        ? frame2Config.line.again
-        : frame2Config.line.done;
-  const arrow = (() => {
-    if (!lineBox || lineBox.width <= 0 || lineBox.textBottom <= 0) return null;
-    const { startGap, cardGap } = frame2Config.line.arrow;
-    const edgeY = lineBox.tipY - lineBox.top;
-    if (lineBox.mode === "above") {
-      return arrowDraw(
-        { x: lineBox.width / 2, y: lineBox.textBottom + startGap },
-        { x: lineBox.tipX - lineBox.left, y: edgeY - cardGap },
-        "above",
-      );
-    }
-    // Leave from under the words when that still sits above the card.
-    // On a short frame the words sit beside the cards, so the curve leaves
-    // from their top-right and still turns down onto the middle card.
-    const under = lineBox.textBottom + startGap;
-    const landed = edgeY - cardGap;
-    const aboveCard = under + 12 <= landed;
-    const start = aboveCard
-      ? { x: lineBox.width, y: under }
-      : { x: lineBox.width + startGap, y: Math.min(startGap, edgeY - 10) };
-    const tipY = aboveCard ? landed : Math.min(edgeY - 2, start.y + 12);
-    return arrowDraw(
-      start,
-      { x: lineBox.tipX - lineBox.left, y: tipY > start.y ? tipY : edgeY - 2 },
-      "side",
-    );
-  })();
   const sectionClass = [
     "frame2",
     phone ? "is-phone" : "",
     dimmed ? "is-dim" : "",
+    built ? "is-note" : "",
     open?.pose === "shut" && !reduced ? "is-closing" : "",
     reduced ? "is-reduced" : "",
   ]
@@ -1271,11 +1040,34 @@ export function Frame2() {
             }}
           />
         ) : null}
+        {arrow && !open ? (
+          <svg
+            className="frame2-arrow"
+            viewBox={`0 0 ${Math.max(1, frameWidth)} ${Math.max(1, frameHeight)}`}
+            aria-hidden="true"
+          >
+            <path className="frame2-arrow-shaft" d={arrow.shaft} />
+            <path className="frame2-arrow-head" d={arrow.head} />
+          </svg>
+        ) : null}
         <div ref={introRef} className="frame2-intro">
-          <h2 className="frame2-headline">
-            <Headline lines={headline.lines} gold={headline.gold} trailing={<LoveInfo buttonRef={loveRef} />} />
-          </h2>
-          <LeadCopy />
+          <h2 className="frame2-headline">{headline.text}</h2>
+          <div className="frame2-prose">
+            <p>
+              It's an online multiplayer card game, built with a low-level{" "}
+              <span className="frame2-engine">
+                engine.
+                <LoveInfo buttonRef={loveRef} />
+              </span>
+            </p>
+            <p>
+              I wrote the game <span className="frame2-gold">without a coding agent</span>. That came to around{" "}
+              <span className="frame2-gold">
+                <span className="frame2-num">18,000</span> lines of Lua code
+              </span>
+              .
+            </p>
+          </div>
           <div className="frame2-stores">
             <a
               className="frame2-store"
@@ -1294,6 +1086,25 @@ export function Frame2() {
               <img src={frame2Config.assets.play} alt="Get it on Google Play" draggable={false} />
             </a>
           </div>
+          <div className="frame2-choice">
+            <button
+              ref={builtRef}
+              type="button"
+              className="frame2-how"
+              aria-expanded={built}
+              aria-controls="frame2-built-note"
+              onClick={() => setBuilt(true)}
+            >
+              How I built it
+              <ChoiceSwash />
+            </button>
+            <span className="frame2-choice-rest">
+              <span className="frame2-or">or</span>
+              <span ref={pickRef} className="frame2-pick">
+                Pick a card.
+              </span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1308,30 +1119,39 @@ export function Frame2() {
       <canvas ref={grainRef} className="frame2-grain" aria-hidden="true" />
       <div className="frame2-veil" aria-hidden="true" />
 
-      <div
-        ref={lineRef}
-        className={lineOn ? "frame2-line" : "frame2-line is-hidden"}
-        aria-hidden={lineOn ? undefined : true}
-        style={lineBox ? { left: `${lineBox.left}px`, top: `${lineBox.top}px` } : { visibility: "hidden" }}
-      >
-        <p className="frame2-line-text" tabIndex={lineOn ? 0 : -1}>
-          {lineCopy}
-          <InviteRule />
-        </p>
-        <div className="frame2-arrow-space" />
-        {lineBox && arrow ? (
-          <svg
-            className="frame2-arrow"
-            width={arrow.width}
-            height={arrow.height}
-            viewBox={`${arrow.left} ${arrow.top} ${arrow.width} ${arrow.height}`}
-            style={{ left: arrow.left, top: arrow.top }}
-            aria-hidden="true"
+      {built ? (
+        <div className={builtOn || reduced ? "frame2-built is-on" : "frame2-built"}>
+          <div
+            className="frame2-built-veil"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              setBuilt(false);
+            }}
+          />
+          <div
+            ref={builtDialogRef}
+            id="frame2-built-note"
+            className="frame2-built-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="frame2-built-title"
           >
-            <path d={arrow.d} pathLength={1} />
-          </svg>
-        ) : null}
-      </div>
+            <button
+              ref={builtCloseRef}
+              type="button"
+              className="frame2-built-close"
+              aria-label="Close"
+              onClick={() => setBuilt(false)}
+            >
+              ×
+            </button>
+            <h3 id="frame2-built-title">{builtNote.title}</h3>
+            {builtNote.paragraphs.map((paragraph) => (
+              <MarkedCopy key={paragraph.marks[0]} body={paragraph.text} marks={paragraph.marks} highlight />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {open && active && phone ? (
         <div className={open.pose === "open" ? "frame2-open is-sheet is-shown" : "frame2-open is-sheet"}>
