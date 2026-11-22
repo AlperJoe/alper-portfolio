@@ -1,23 +1,75 @@
-import { useEffect, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { attachWhyNote } from "../whyNote/whyNote";
-import { interludeStyle, interludeWhy, type Interlude, type InterludeLine } from "./interludes";
+import { interludeStyle, interludeWhy, type Interlude } from "./interludes";
 import { phoneWidth } from "./pages";
 
-function LineText({ line }: { line: InterludeLine }) {
-  const at = line.text.indexOf(line.focus);
-  if (at < 0) return <>{line.text}</>;
+type Part = { text: string; gold: boolean };
+
+type QuoteWord = {
+  parts: Part[];
+  gold: boolean;
+};
+
+/** Splits a line into words. A word that overlaps the gold phrase stays gold, punctuation included beside it. */
+function splitLine(text: string, focus?: string): QuoteWord[] {
+  const phrase = focus ?? "";
+  const focusAt = phrase ? text.indexOf(phrase) : -1;
+  const focusEnd = focusAt >= 0 ? focusAt + phrase.length : -1;
+  const words: QuoteWord[] = [];
+  const pattern = /\S+/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text))) {
+    const token = match[0];
+    const start = match.index;
+    const end = start + token.length;
+    const overlaps = focusAt >= 0 && start < focusEnd && end > focusAt;
+    const parts: Part[] = [];
+    if (!overlaps) {
+      parts.push({ text: token, gold: false });
+    } else {
+      const goldStart = Math.max(0, focusAt - start);
+      const goldEnd = Math.min(token.length, focusEnd - start);
+      if (goldStart > 0) parts.push({ text: token.slice(0, goldStart), gold: false });
+      parts.push({ text: token.slice(goldStart, goldEnd), gold: true });
+      if (goldEnd < token.length) parts.push({ text: token.slice(goldEnd), gold: false });
+    }
+    words.push({ parts, gold: overlaps });
+  }
+  for (let index = 0; index < words.length - 1; index += 1) {
+    words[index].parts.push({ text: " ", gold: false });
+  }
+  return words;
+}
+
+function Word({ word }: { word: QuoteWord }) {
   return (
-    <>
-      {line.text.slice(0, at)}
-      <em className="quote-focus">{line.focus}</em>
-      {line.text.slice(at + line.focus.length)}
-    </>
+    <span className={word.gold ? "quote-word is-gold" : "quote-word"}>
+      {word.parts.map((part, index) =>
+        part.gold ? (
+          <em key={index} className="quote-focus">
+            {part.text}
+          </em>
+        ) : (
+          <span key={index}>{part.text}</span>
+        ),
+      )}
+    </span>
+  );
+}
+
+function Mark({ kind }: { kind: "open" | "close" }) {
+  return (
+    <span className={`quote-word quote-mark quote-${kind}`} aria-hidden="true">
+      {kind === "open" ? "“" : "”"}
+    </span>
   );
 }
 
 /**
- * A quote in the passage between two frames: the lines centered inside large
- * gold quotation marks, and the "Read more" marker under them.
+ * A quote in the zone between two frames: the lines centered inside large
+ * gold quotation marks, and the "Read more" marker under them. The words are
+ * separate spans so the scroll can gather and scatter them. Their size is
+ * the same measure this page has always used.
  */
 export function QuotePage({ interlude }: { interlude: Interlude }) {
   const pageRef = useRef<HTMLElement>(null);
@@ -78,12 +130,20 @@ export function QuotePage({ interlude }: { interlude: Interlude }) {
     const button = whyRef.current;
     const page = pageRef.current;
     if (!button || !page || !interlude.note) return;
+    const guard = (event: Event) => {
+      if (button.dataset.live === "1") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    button.addEventListener("click", guard, true);
     const note = attachWhyNote(button, page, { note: interlude.note, label: interludeWhy.label });
-    return () => note.destroy();
+    return () => {
+      button.removeEventListener("click", guard, true);
+      note.destroy();
+    };
   }, [interlude]);
 
   const style = {
-    "--quote-bg": interludeStyle.background,
     "--quote-text": interludeStyle.textColor,
     "--quote-gold": interludeStyle.focusColor,
     "--quote-font": `"${interludeStyle.font}", serif`,
@@ -92,25 +152,21 @@ export function QuotePage({ interlude }: { interlude: Interlude }) {
     "--quote-why-gap": `${interludeWhy.gap}px`,
   } as CSSProperties;
 
+  const lines: ReactNode[] = interlude.lines.map((line, index) => (
+    <p key={line.text} className="quote-line">
+      {index === 0 ? <Mark kind="open" /> : null}
+      {splitLine(line.text, line.focus).map((word, wordIndex) => (
+        <Word key={`${wordIndex}-${word.parts.map((part) => part.text).join("")}`} word={word} />
+      ))}
+      {index === last ? <Mark kind="close" /> : null}
+    </p>
+  ));
+
   return (
     <section ref={pageRef} className="quote" style={style}>
       <div className="quote-stack">
         <blockquote ref={textRef} className="quote-text">
-          {interlude.lines.map((line, index) => (
-            <p key={line.text} className="quote-line">
-              {index === 0 ? (
-                <span className="quote-mark quote-open" aria-hidden="true">
-                  “
-                </span>
-              ) : null}
-              <LineText line={line} />
-              {index === last ? (
-                <span className="quote-mark quote-close" aria-hidden="true">
-                  ”
-                </span>
-              ) : null}
-            </p>
-          ))}
+          {lines}
         </blockquote>
         {interlude.note ? (
           <button ref={whyRef} type="button" className="why-button quote-why">
