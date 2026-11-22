@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ending Frame Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  /* Layout: a fixed 1440x900 stage scaled to the window. Two endings, left and right, with "or" between them. */
+  :root {
+    --bg: #0b0b0d;
+    --ink: #f2eee6;
+    --soft: rgba(242, 238, 230, 0.78);
+    --muted: rgba(242, 238, 230, 0.58);
+    --gold: #efc785;
+    --paper: #f3eadb;
+    --paper-ink: #2b211a;
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #060607; color: var(--ink); font-family: var(--sans); padding-block: 16px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; max-width: 1440px; margin: 0 auto 12px; font-size: 13px; color: #a99d90; }
+  .bar h1 { margin: 0; font: 600 15px var(--sans); color: var(--ink); }
+
+  .viewport { max-width: 1440px; margin: 0 auto; overflow: hidden; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); }
+  .stage { position: relative; width: 1440px; height: 900px; transform-origin: top left; overflow: hidden; background:
+      radial-gradient(60% 70% at 12% 55%, rgba(237, 118, 36, 0.10), transparent 70%),
+      radial-gradient(60% 70% at 88% 50%, rgba(40, 72, 200, 0.13), transparent 70%),
+      var(--bg); }
+  .stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.05; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  .menu { position: absolute; top: 18px; right: 22px; display: flex; gap: 24px; padding: 10px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(12,12,14,0.7); font: 400 13px var(--sans); color: rgba(242,238,230,0.75); }
+  .menu span:last-child { color: var(--gold); }
+
+  .col { position: absolute; top: 104px; width: 584px; }
+  .col.a { left: 72px; }
+  .col.b { left: 784px; }
+
+  .label { margin: 0 0 14px; font: 600 12.5px/1 var(--sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+  .line { margin: 0; font: 400 40px/1.12 var(--serif); color: var(--ink); text-wrap: balance; }
+  .second { margin: 14px 0 0; font: italic 400 25px/1.28 var(--serif); color: var(--soft); text-wrap: balance; }
+
+  /* "or" between the two endings */
+  .or { position: absolute; left: 720px; top: 96px; bottom: 96px; width: 0; }
+  .or::before, .or::after { content: ""; position: absolute; left: 0; width: 1px; }
+  .or::before { top: 0; height: 64px; background: linear-gradient(rgba(239,199,133,0), rgba(239,199,133,0.45)); }
+  .or::after { top: 120px; bottom: 0; background: linear-gradient(rgba(239,199,133,0.45), rgba(239,199,133,0) 80%); }
+  .or span { position: absolute; left: 0; top: 70px; transform: translateX(-50%); font: italic 400 34px/1 var(--serif); color: var(--gold); }
+
+  /* Let's talk */
+  .contact-row { display: flex; gap: 30px; align-items: center; margin-top: 34px; }
+  .print { flex: none; width: 130px; height: 162px; padding: 6px; background: #f4efe6; box-shadow: 0 14px 30px rgba(0,0,0,0.5), 0 3px 8px rgba(0,0,0,0.35); }
+  .print img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+  .contact { display: grid; gap: 16px; font: 400 18px var(--sans); }
+  .contact .item { display: flex; align-items: center; gap: 12px; }
+  .contact svg.ico { width: 18px; height: 18px; fill: none; stroke: rgba(242,238,230,0.6); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .contact a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(242,238,230,0.35); }
+  .write { font: italic 400 20px var(--serif); color: var(--gold); margin-left: 4px; }
+  .social { display: flex; gap: 10px; align-items: center; padding-left: 30px; }
+  .social .s { width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center; }
+  .social .gh { background: #fff; color: #181717; }
+  .social .li { background: #0a66c2; color: #fff; }
+  .social .li svg { width: 16px; height: 16px; }
+  .social .s svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+  .social .cv { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 7px; background: #f4efe6; color: #2b211a; font: 600 12px var(--sans); letter-spacing: 0.08em; }
+  .social .cv svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Conversation starters: part of "Let's talk", with a heading in the gold invitation voice */
+  .starters { margin-top: 40px; }
+  .starters h3 { margin: 0; font: italic 400 36px/1.05 var(--serif); color: var(--gold); }
+  .starters p { margin: 8px 0 18px; font: 400 16px/1.4 var(--sans); color: var(--soft); }
+  .tickets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 18px; }
+  .ticket { position: relative; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.45)) drop-shadow(0 1px 2px rgba(0,0,0,0.35)); }
+  .ticket .paper { position: relative; display: flex; flex-direction: column; gap: 6px; height: 88px; padding: 13px 18px 8px 12px; color: var(--paper-ink);
+    background: linear-gradient(var(--band) 0 6.5px, transparent 6.5px), linear-gradient(160deg, rgba(255,255,255,0.35), rgba(160,120,70,0.08)), var(--paper);
+    -webkit-mask-image: radial-gradient(circle at 100% 50%, transparent 3.4px, #000 3.9px); mask-image: radial-gradient(circle at 100% 50%, transparent 3.4px, #000 3.9px);
+    -webkit-mask-size: 100% 10px; mask-size: 100% 10px; -webkit-mask-repeat: no-repeat round; mask-repeat: no-repeat round; }
+  .ticket .paper::after { content: ""; position: absolute; top: 6.5px; bottom: 0; right: 7.4px; border-right: 1px dashed rgba(43,33,26,0.25); }
+  .ticket svg.hico { width: 26px; height: 26px; fill: none; stroke: var(--paper-ink); stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+  .ticket .t { font: 500 14.5px/1.22 var(--sans); text-wrap: balance; }
+  .ticket .d { display: block; margin-top: 2px; font: 400 11px/1.2 var(--sans); color: rgba(43,33,26,0.72); }
+  .stamp { position: absolute; top: 12px; right: 18px; width: 42px; height: 42px; border: 1.5px solid #b23a26; border-radius: 50%; display: grid; place-items: center; text-align: center; font: 600 10px/1.05 var(--sans); color: #b23a26; rotate: -14deg; opacity: 0.85; }
+
+  /* Watch my films */
+  .films { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 34px; }
+  .cover { position: relative; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: linear-gradient(135deg, #24242a, #111114); box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover .play { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.82); background: rgba(0,0,0,0.45); display: grid; place-items: center; }
+  .cover .play svg { width: 18px; height: 18px; fill: #fff; margin-left: 2px; }
+  .cover .veil { position: absolute; inset: 0; background: rgba(8,6,8,0.72); display: grid; place-content: center; justify-items: center; gap: 10px; padding: 0 18px; text-align: center; font: 400 13px/1.4 var(--sans); color: var(--ink); }
+  .cover .veil svg { width: 36px; height: 36px; fill: none; stroke: #c17b74; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; font: 400 16px/1.5 var(--sans); color: var(--muted); }
+  .caps strong { color: var(--ink); font-weight: 600; font-size: 17px; }
+  .caps .year { margin-left: 8px; }
+  .caps p { margin: 6px 0 0; }
+
+  .back { position: absolute; left: 0; right: 0; top: 836px; text-align: center; font: italic 400 21px var(--serif); color: var(--gold); }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <h1>Ending frame, desktop 1440×900</h1>
+    <span>Version 4. The film covers stay dark here, and the real site shows them from YouTube.</span>
+  </div>
+
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage">
+      <div class="menu"><span>Pedro!</span><span>PressurePlate</span><span>Contact</span></div>
+
+      <div class="or" aria-hidden="true"><span>or</span></div>
+
+      <section class="col a">
+        <p class="label">Let's talk</p>
+        <p class="line">You scrolled all the way here. I think we should talk.</p>
+        <div class="contact-row">
+        <div class="print"><img src="contact-photo.webp" alt="Alper Bozkurt"></div>
+        <div class="contact">
+          <div class="item">
+            <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.8 7 8.2 6 8.2-6"/></svg>
+            <a href="#">alperjoebozkurt@gmail.com</a><span class="write">Write</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M6.6 3.5h2.7l1.4 4.1-2 1.4a12 12 0 0 0 6.3 6.3l1.4-2 4.1 1.4v2.7a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z"/></svg>
+            <span>+31 6 8558 5100</span>
+          </div>
+          <div class="social">
+            <span class="s gh"><svg viewBox="0 0 24 24"><path d="M12 .5C5.73.5.5 5.73.5 12.02c0 5.1 3.29 9.43 7.86 10.96.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.53-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.41-5.25 5.69.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.67.8.56A10.52 10.52 0 0 0 23.5 12C23.5 5.73 18.27.5 12 .5Z"/></svg></span>
+            <span class="s li"><svg viewBox="-1.51 0.5 24 24"><path d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8.5h4V24h-4V8.5zM8.5 8.5h3.84v2.11h.05c.53-1.01 1.84-2.08 3.79-2.08 4.05 0 4.8 2.67 4.8 6.14V24h-4v-7.71c0-1.84-.03-4.2-2.56-4.2-2.56 0-2.95 2-2.95 4.06V24h-4V8.5z"/></svg></span>
+            <span class="cv"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 11.5 5 5 5-5"/><path d="M5 20h14"/></svg>CV</span>
+          </div>
+        </div>
+        </div>
+        <section class="starters">
+          <h3>Conversation starters</h3>
+          <p>If you'd rather not start with work, pick one of these.</p>
+          <div class="tickets">
+          <div class="ticket" style="--band:#ED7624"><div class="paper">
+            <svg class="hico" viewBox="0 0 24 24"><path d="M11.6 13 16.4 6.4M14.2 13l4.3-5.4"/><path d="M16.4 6.4 15.9 2.6c-.1-.8.6-1.3 1.3-.9l4.3 2.6c.6.4.6 1.2 0 1.6l-3 2.1"/><path d="M17.6 3.4h.01M19.7 4.7h.01" stroke-width="2"/><path d="M17.6 3.4 16.2 4.6M19.7 4.7l1.1 1.6" stroke-width="1.1"/><rect x="1.8" y="13" width="17" height="8.2" rx="1"/><path d="M6 13v8.2M10.3 13v8.2M14.5 13v8.2"/><path d="M6 13v4.4M10.3 13v4.4M14.5 13v4.4" stroke-width="2.6" stroke-linecap="butt"/></svg>
+            <span class="t">Piano and bass at jam sessions</span></div></div>
+          <div class="ticket" style="--band:#C8452E"><div class="paper">
+            <svg class="hico" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="1.2"/><path d="M2.5 8.4h19M2.5 15.6h19M9 8.4v7.2M15 8.4v7.2"/><path d="M5 6.7h.01M8.5 6.7h.01M12 6.7h.01M15.5 6.7h.01M19 6.7h.01M5 17.3h.01M8.5 17.3h.01M12 17.3h.01M15.5 17.3h.01M19 17.3h.01" stroke-width="1.9"/></svg>
+            <span class="t">Cinema, up to three times a week</span></div><span class="stamp">up to 3×</span></div>
+          <div class="ticket" style="--band:#E3A23B"><div class="paper">
+            <svg class="hico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 3.4v17.2M3.4 12h17.2"/><path d="M6.1 5.7a11 11 0 0 1 0 12.6M17.9 5.7a11 11 0 0 0 0 12.6"/></svg>
+            <span class="t">Basketball<span class="d">but I'm up for almost any sport</span></span></div></div>
+          <div class="ticket" style="--band:#B9704A"><div class="paper">
+            <svg class="hico" viewBox="0 0 24 24"><circle cx="12" cy="4.2" r="1.9"/><path d="M12 7.4v5.8M3.2 9.6h17.6"/><path d="M12 13.2 7.6 15.4l-1.4 5M12 13.2l6.4 7.2"/><path d="M2.8 21.2h18.4"/></svg>
+            <span class="t">Yoga</span></div></div>
+          <div class="ticket" style="--band:#D9622B"><div class="paper">
+            <svg class="hico" viewBox="0 0 24 24"><circle cx="7" cy="6.6" r="2.3"/><path d="M5.5 9.6h3l1.2 7.4H4.3Z"/><path d="M3.2 20.2h7.6M3.6 20.2l.7-3.2h5.4l.7 3.2"/><rect x="12.6" y="9.8" width="9" height="9" rx="1.8" transform="rotate(8 17.1 14.3)"/><path d="M15 12.1h.01M17.1 14.3h.01M19.2 16.5h.01" stroke-width="2.2"/></svg>
+            <span class="t">Board games</span></div></div>
+          <div class="ticket" style="--band:#C46A3A"><div class="paper">
+            <svg class="hico" viewBox="0 0 24 24"><path d="M2.6 12.4h11.8"/><path d="M3.2 12.4c.4 3.6 2.4 5.8 5.3 5.8s4.9-2.2 5.3-5.8"/><path d="M14.4 11.5h6.4"/></svg>
+            <span class="t">Cooking every day</span></div></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="col b">
+        <p class="label">Watch my films</p>
+        <p class="line">Stay for two unscripted short films I made when I wanted to become a filmmaker.</p>
+        <p class="second">I made films about the people and relationships that shaped my life. I chose these two because they can be watched without a language barrier.</p>
+        <div class="films">
+        <div class="cover"><img src="https://i.ytimg.com/vi/Eu5t1X9Fnzc/hqdefault.jpg" alt="" onerror="this.remove()"><span class="play"><svg viewBox="0 0 24 24"><path d="M9 6.5v11l9-5.5Z"/></svg></span></div>
+        <div class="cover"><img src="https://i.ytimg.com/vi/6B0btHK9d2U/hqdefault.jpg" alt="" onerror="this.remove()"><div class="veil"><svg viewBox="0 0 48 48"><path d="M24.2 5.6 C 16.9 17.4, 10.4 30.1, 6.7 40.7 C 16.8 42.6, 31.6 42.35, 41.4 40.2 C 35.8 28.2, 29.6 16.2, 24.2 5.6 Z"/><path d="M24.05 17.4 C 24.55 21.8, 23.7 27.2, 24.25 31.7"/><path d="M24.2 36.15 v0.2" stroke-width="3"/></svg>Content warning: this film contains violence.</div></div>
+        </div>
+        <div class="caps">
+        <div><strong>Change: An Amsterdam Journal</strong><span class="year">2023</span><p>His first love was a city. A journey through Amsterdam, from being a tourist to feeling at home, and leaving after falling in love.</p></div>
+        <div><strong>How to Boil an Egg</strong><span class="year">2024</span><p>A couple shows how to boil an egg, and the egg stands for a child. Through them I told the story of someone who affected me deeply. It is hard to watch, but I wanted it to be remembered.</p></div>
+        </div>
+      </section>
+
+      <div class="back">Back to the beginning ↑</div>
+    </div>
+  </div>
+
+<script>
+  const stage = document.getElementById('stage');
+  const viewport = document.getElementById('viewport');
+  function fit() {
+    const s = Math.min(1, viewport.clientWidth / 1440);
+    stage.style.transform = `scale(${s})`;
+    viewport.style.height = `${900 * s}px`;
+  }
+  addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedro Frame Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..700&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=IM+Fell+English:ital@0;1&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  /* Layout: a fixed 1440x900 stage scaled to the window. The background is the live Frame 2 with its texts hidden. */
+  /* Black Chancery is the title font inside the Pedro game (public domain). The site would host it itself. */
+  @font-face { font-family: "Black Chancery"; src: url("black-chancery.woff2") format("woff2"); font-display: swap; }
+  :root {
+    --bg: #0b0605;
+    --ink: #f5eee4;
+    --soft: #e3d9ca;
+    --muted: #a99d90;
+    --gold: #efc785;
+    --paper: #f3ebdd;
+    --paper-ink: #2a2118;
+    --mark: rgba(239, 199, 133, 0.55);
+    --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --grot: "Bricolage Grotesque", "Archivo", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); padding-block: 16px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; max-width: 1440px; margin: 0 auto 12px; font-size: 13px; color: var(--muted); }
+  .bar h1 { margin: 0; font: 600 15px var(--sans); color: var(--ink); }
+  .bar button { font: 500 13px var(--sans); color: var(--bg); background: var(--gold); border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  .bar button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .viewport { max-width: 1440px; margin: 0 auto; overflow: hidden; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); }
+  .stage { position: relative; width: 1440px; height: 900px; transform-origin: top left; background: #2a0f0b url("plate.jpg") center / cover no-repeat; overflow: hidden; }
+
+  /* intro column */
+  .intro { position: absolute; left: 72px; top: 112px; width: 800px; z-index: 3; }
+  /* The headline uses the title font of the game itself, with the same dark echo up and to the left as the painted titles. */
+  .headline { margin: 0; font-family: "Black Chancery", "Iowan Old Style", Georgia, serif; font-weight: 400; font-size: 66px; line-height: 1.05; letter-spacing: 0; color: #f3e3c3; text-shadow: -2px -2px 0 rgba(58, 14, 9, 0.55), -4px -4px 0 rgba(58, 14, 9, 0.3), 0 3px 16px rgba(0,0,0,0.5); }
+  .nowrap { white-space: nowrap; }
+
+  .marker { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px 0 7px; margin-left: 10px; vertical-align: 2px; background: var(--paper); color: var(--paper-ink); font: italic 400 16px var(--serif); letter-spacing: 0; border-radius: 6px 0 6px 6px; rotate: -2deg; box-shadow: 0 3px 10px rgba(0,0,0,0.45); cursor: pointer; text-shadow: none; transition: translate 150ms ease; border: 0; }
+  .marker:hover { translate: 0 -2px; }
+  .marker i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #2a2520; color: var(--gold); font: 600 11px var(--sans); font-style: normal; }
+  .marker::after { content: ""; position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: linear-gradient(to bottom left, var(--bg-fold, #6b2a20) 50%, #d9c9ae 50%); }
+
+  .text { margin-top: 20px; font: 400 22px/1.4 "IM Fell English", Georgia, serif; color: var(--soft); text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
+  .text p { margin: 0; }
+  .text p + p { margin-top: 14px; }
+  .gold { color: var(--gold); }
+  /* IM Fell has only old-style figures, so 18,000 would read like "ı8,ooo". The number takes the headline font instead. */
+  .num { font-family: "Black Chancery", Georgia, serif; font-size: 1.08em; letter-spacing: 0.02em; }
+
+  .stores { display: flex; gap: 12px; margin-top: 28px; }
+  .stores a { display: block; height: 52px; }
+  .stores .apple img { height: 52px; width: auto; display: block; }
+  .stores .play { width: 175px; overflow: hidden; position: relative; border-radius: 8px; }
+  .stores .play img { position: absolute; height: 77.4px; width: auto; left: -12.7px; top: -12.7px; }
+
+  /* the choice: How I built it  or  Pick a card. One row in the intro column. */
+  .choice { display: flex; align-items: baseline; gap: 22px; margin-top: 48px; }
+  /* How I built it carries a hand-drawn gold swash, the same stroke as Pedro's arrow. Both choices end in a gold line. */
+  .how { position: relative; margin: 0; padding: 0 0 10px; border: 0; background: none; cursor: pointer; font: italic 400 46px/1 "IM Fell English", Georgia, serif; color: var(--gold); text-shadow: 0 2px 14px rgba(0,0,0,0.7); transition: color 180ms ease; }
+  .swash { position: absolute; left: -2px; bottom: -6px; width: calc(100% + 4px); height: 22px; overflow: visible; pointer-events: none; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.6)); }
+  .swash path { fill: none; stroke: var(--gold); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 300; stroke-dashoffset: 0; transition: stroke-dashoffset 0s; }
+  .how:hover, .how:focus-visible { color: #f6d9a4; outline: none; }
+  .how:hover .swash path, .how:focus-visible .swash path { animation: draw 420ms ease-out; }
+  @keyframes draw { from { stroke-dashoffset: 300; } to { stroke-dashoffset: 0; } }
+  .or { font: italic 400 26px/1 "IM Fell English", Georgia, serif; color: rgba(245, 238, 228, 0.72); text-shadow: 0 1px 8px rgba(0,0,0,0.7); }
+  /* Pick a card is not clicked. The cards are. So it has no hover. */
+  .pick { font: italic 400 46px/1 "IM Fell English", Georgia, serif; color: var(--gold); filter: drop-shadow(0 2px 12px rgba(0,0,0,0.82)); cursor: default; }
+  .arrow { position: absolute; z-index: 2; left: 0; top: 0; overflow: visible; pointer-events: none; }
+
+  /* the note */
+  .veil { position: absolute; inset: 0; z-index: 5; background: rgba(20, 6, 4, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity 240ms ease; }
+  .sheet { position: absolute; z-index: 6; left: 72px; top: 50%; width: 640px; padding: 30px 36px 32px; background: linear-gradient(rgba(255,252,247,0.7), rgba(255,252,247,0) 32%), var(--paper); color: var(--paper-ink); border-radius: 3px; box-shadow: 0 18px 50px rgba(0,0,0,0.55); font: 400 16px/1.62 var(--sans); opacity: 0; transform: translateY(calc(-50% + 14px)) rotate(-0.4deg); pointer-events: none; transition: opacity 240ms ease, transform 240ms ease; }
+  .open .veil { opacity: 1; pointer-events: auto; }
+  .open .sheet { opacity: 1; transform: translateY(-50%) rotate(-0.4deg); pointer-events: auto; }
+  .sheet h3 { margin: 0 0 14px; font: italic 400 34px/1 var(--serif); }
+  .sheet p { margin: 0 0 12px; } .sheet p:last-child { margin: 0; }
+  .sheet mark { background: linear-gradient(transparent 45%, var(--mark) 45%, var(--mark) 92%, transparent 92%); color: inherit; padding: 0 1px; }
+  .close { position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(42,37,32,0.08); color: var(--paper-ink); font: 400 18px/30px var(--sans); cursor: pointer; }
+  .close:hover { background: rgba(42,37,32,0.16); }
+
+  .notes { max-width: 1440px; margin: 18px auto 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <h1>Pedro frame, desktop 1440×900</h1>
+    <button id="toggle" type="button">Open “How I built it”</button>
+    <span>Click “How I built it” on the page too. The background is the live frame with its texts hidden.</span>
+  </div>
+
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage">
+      <div class="intro" id="intro">
+        <h2 class="headline">I programmed Pedro.</h2>
+        <div class="text">
+          <p>It's an online multiplayer card game, built with a low-level <span class="nowrap">engine.<button class="marker" type="button"><i>i</i>About LÖVE</button></span></p>
+          <p>I wrote the game <span class="gold">without a coding agent</span>. That came to around <span class="gold"><span class="num">18,000</span> lines of Lua code</span>.</p>
+        </div>
+        <div class="stores">
+          <a class="apple" href="#" aria-label="Download on the App Store"><img src="app-store-badge.svg" alt=""></a>
+          <a class="play" href="#" aria-label="Get it on Google Play"><img src="google-play-badge.png" alt=""></a>
+        </div>
+        <div class="choice">
+          <button class="how" id="how" type="button">How I built it<svg class="swash" viewBox="0 0 250 22" preserveAspectRatio="none" aria-hidden="true"><path d="M3 14 C 40 19, 120 15, 246 5"/></svg></button>
+          <span class="or">or</span>
+          <span class="pick" id="pick">Pick a card.</span>
+        </div>
+      </div>
+      <svg class="arrow" width="1440" height="900" aria-hidden="true">
+        <path id="arrowPath" d="" fill="none" stroke="#efc785" stroke-width="2.5" stroke-linecap="round"/>
+        <path id="arrowHead" d="" fill="none" stroke="#efc785" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+
+      <div class="veil" id="veil"></div>
+      <article class="sheet" id="sheet" role="dialog" aria-label="How I built it">
+        <button class="close" id="close" type="button" aria-label="Close">×</button>
+        <h3>How I built it</h3>
+        <p>I worked with a designer on Pedro and wrote the game code myself. I used ChatGPT to talk through problems as I worked. I made the implementation decisions and put the game together one system at a time. From the start I split the code into <mark>three layers</mark>, the game on the phone, the server and a core that holds the rules, so each part could grow without breaking the others. Git kept a record of every change.</p>
+        <p>Take a single turn. You tap a card on your phone. The game has to work out which card you touched, check whether you can play it, and show everyone at the table what happened. I used LÖVE to draw the game and handle input. I wrote the rules in a separate Lua module so the game on your phone and the multiplayer server could use the <mark>same code</mark> to decide whether a move was legal.</p>
+        <p>That separation helped when something went wrong. If two players saw different things after a move, I could check what the server had accepted, what it had sent to each phone, and what each phone had drawn. Keeping the rule checks on the server cut down the moments when phones fell <mark>out of sync</mark>.</p>
+        <p>Getting Pedro onto real phones took its own work. I tested it, prepared the builds for release and kept fixing problems after the first builds went out. By the time Pedro <mark>shipped</mark>, that one turn connected code I'd written all the way from a tap on the screen to the game running on someone else's device.</p>
+      </article>
+    </div>
+  </div>
+
+  <p class="notes">Not in this mock: the opening card sheets, the embers and the menu. They stay as they are on the live site.</p>
+
+<script>
+  const stage = document.getElementById('stage');
+  const viewport = document.getElementById('viewport');
+  function fit() {
+    const s = Math.min(1, viewport.clientWidth / 1440);
+    stage.style.transform = `scale(${s})`;
+    viewport.style.height = `${900 * s}px`;
+  }
+  addEventListener('resize', () => { fit(); layoutChoice(); }); fit();
+
+  // "or" and its two rules sit between the two choices, on the line through their lowercase letters.
+  // Pedro's arrow: from the end of "Pick a card." across to the middle card in his hand.
+  function layoutChoice() {
+    const pick = document.getElementById('pick');
+    const sr = stage.getBoundingClientRect();
+    const k = sr.width / 1440;
+    const r = pick.getBoundingClientRect();
+    const sx = (r.right - sr.left) / k + 16;
+    const sy = (r.top - sr.top) / k + r.height / k * 0.62;
+    const ex = 892, ey = 514;
+    const cx = sx + (ex - sx) * 0.72, cy = sy - 46;
+    document.getElementById('arrowPath').setAttribute('d', `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`);
+    const ang = Math.atan2(ey - cy, ex - cx), len = 12, a = 35 * Math.PI / 180;
+    const p1 = [ex - len * Math.cos(ang - a), ey - len * Math.sin(ang - a)];
+    const p2 = [ex - len * Math.cos(ang + a), ey - len * Math.sin(ang + a)];
+    document.getElementById('arrowHead').setAttribute('d', `M ${p1[0]} ${p1[1]} L ${ex} ${ey} L ${p2[0]} ${p2[1]}`);
+  }
+  document.fonts.ready.then(layoutChoice); layoutChoice();
+
+  const toggle = document.getElementById('toggle');
+  function setOpen(on) {
+    stage.classList.toggle('open', on);
+    toggle.textContent = on ? 'Close the note' : 'Open “How I built it”';
+  }
+  document.getElementById('how').addEventListener('click', () => setOpen(true));
+  document.getElementById('close').addEventListener('click', () => setOpen(false));
+  document.getElementById('veil').addEventListener('click', () => setOpen(false));
+  toggle.addEventListener('click', () => setOpen(!stage.classList.contains('open')));
+  addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+</script>
+</body>
+</html>
