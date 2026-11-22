@@ -5,47 +5,7 @@ import { useScrollLock } from "../transitions/scrollLock";
 import { attachWhyNote } from "../whyNote/whyNote";
 import "./Frame1.css";
 
-type Shown = {
-  bilkent: boolean;
-  buas: boolean;
-  middle: boolean;
-  content: boolean;
-  name: boolean;
-};
-
 type ResearchPose = "from" | "open" | "back";
-type DetailSide = "buas" | "bilkent";
-
-type Metrics = {
-  startH: number;
-  startTop: number;
-  fullH: number;
-  fullTop: number;
-};
-
-const ALL_SHOWN: Shown = {
-  bilkent: true,
-  buas: true,
-  middle: true,
-  content: true,
-  name: true,
-};
-
-const NONE_SHOWN: Shown = {
-  bilkent: false,
-  buas: false,
-  middle: false,
-  content: false,
-  name: false,
-};
-
-const OPENING_STEPS: Array<[number, keyof Shown]> = [
-  [frame1Config.opening.bilkent, "bilkent"],
-  [frame1Config.opening.buas, "buas"],
-  [frame1Config.opening.middle, "middle"],
-  [frame1Config.opening.sides, "content"],
-  [frame1Config.opening.name, "name"],
-];
 
 const CREAM = [242, 238, 230] as const;
 
@@ -68,326 +28,24 @@ function fileName(src: string) {
   return src.split("/").pop() ?? src;
 }
 
-/** Writes the opening. Progress 0 is the start state and 1 is the full frame. */
-function applyProgress(element: HTMLElement, p: number, metrics: Metrics, reduced: boolean) {
-  const clamped = Math.min(1, Math.max(0, p));
-  const t = reduced ? (clamped >= 0.5 ? 1 : 0) : clamped;
-  const world = reduced ? Math.abs(1 - 2 * clamped) : 1;
-  const height = metrics.startH + (metrics.fullH - metrics.startH) * t;
-  const top = metrics.startTop + (metrics.fullTop - metrics.startTop) * t;
-  element.style.setProperty("--op", t.toFixed(4));
-  element.style.setProperty("--op-world", world.toFixed(4));
-  element.style.setProperty("--portrait-h", `${height.toFixed(2)}px`);
-  element.style.setProperty("--portrait-top", `${top.toFixed(2)}px`);
-  const hint = Math.min(1, Math.max(0, 1 - t / 0.28));
-  const line = Math.min(1, Math.max(0, (t - 0.22) / 0.4));
-  const more = Math.min(1, Math.max(0, (t - 0.38) / 0.4));
-  const panel = Math.min(1, t / 0.7);
-  element.style.setProperty("--op-hint", hint.toFixed(4));
-  element.style.setProperty("--op-line", line.toFixed(4));
-  element.style.setProperty("--op-more", more.toFixed(4));
-  element.style.setProperty("--op-panel", panel.toFixed(4));
-  const on = t > 0.004 ? "1" : "0";
-  element.dataset.side = on;
-  element.dataset.icons = on;
-  element.dataset.line = line > 0.004 ? "1" : "0";
-  element.dataset.hint = hint > 0.004 ? "1" : "0";
-  refreshPanelMasks(element);
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
 }
 
-function frameMargin(height: number) {
-  const layout = frame1Config.layout;
-  return Math.round(Math.min(layout.marginMax, Math.max(layout.marginMin, height * layout.margin)));
+/** easeInOutCubic, the easing on every opening segment. */
+function ease(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-function portraitAspect(element: HTMLElement) {
-  const image = element.querySelector<HTMLImageElement>("#frame1-main-image");
-  if (image && image.naturalWidth > 0 && image.naturalHeight > 0) {
-    return image.naturalWidth / image.naturalHeight;
-  }
-  return frame1Config.portraitLayout.naturalWidth / frame1Config.portraitLayout.naturalHeight;
+function seg(p: number, start: number, end: number) {
+  return ease(clamp01((p - start) / (end - start)));
 }
 
-/** Top of the photo box so the hair line sits at `hairY`. */
-function topForHair(hairY: number, height: number) {
-  return hairY - frame1Config.portraitLayout.hairTopY * height;
+function lerp(from: number, to: number, t: number) {
+  return from + (to - from) * t;
 }
 
-function equalizeTitles(left: HTMLElement | null, right: HTMLElement | null) {
-  const titles = [left, right]
-    .map((copy) => copy?.querySelector<HTMLElement>(".title"))
-    .filter((node): node is HTMLElement => Boolean(node));
-  titles.forEach((title) => {
-    title.style.minHeight = "";
-  });
-  const slot = Math.max(0, ...titles.map((title) => title.getBoundingClientRect().height));
-  titles.forEach((title) => {
-    title.style.minHeight = `${slot}px`;
-  });
-}
-
-function sizeRule(copy: HTMLElement | null, side: "left" | "right") {
-  if (!copy) return;
-  const title = copy.querySelector<HTMLElement>(".title");
-  const rule = copy.querySelector<HTMLElement>(".rule");
-  if (!title || !rule) return;
-  rule.style.width = `${Math.max(1, title.getBoundingClientRect().width)}px`;
-  rule.style.marginLeft = side === "right" ? "auto" : "0";
-}
-
-function copyFits(copy: HTMLElement, card: HTMLElement) {
-  const box = card.getBoundingClientRect();
-  const body = copy.getBoundingClientRect();
-  if (body.height > 1 && body.bottom > box.bottom - 4) return false;
-  const nodes = copy.querySelectorAll<HTMLElement>(".title, .label, .text, .invite, .course, .rule");
-  for (const node of nodes) {
-    const rect = node.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) continue;
-    if (rect.left < box.left + 2 || rect.right > box.right - 2) return false;
-  }
-  return true;
-}
-
-function visibleCopy(frame: HTMLElement, side: "left" | "right") {
-  const stacked = frame.dataset.stack === "1";
-  const selector = stacked ? ".card-compact" : ".card-copy-full";
-  return frame.querySelector<HTMLElement>(`.card-${side} ${selector}`);
-}
-
-function fitCopies(frame: HTMLElement) {
-  const left = visibleCopy(frame, "left");
-  const right = visibleCopy(frame, "right");
-  const leftCard = frame.querySelector<HTMLElement>(".card-left");
-  const rightCard = frame.querySelector<HTMLElement>(".card-right");
-  if (!left || !right || !leftCard || !rightCard) return;
-  const floor = frame1Config.layout.minText / Math.min(
-    frame1Config.text.bodySize,
-    frame1Config.text.labelSize,
-    frame1Config.text.courseSize,
-  );
-  const apply = (fit: number) => {
-    frame.style.setProperty("--copy-fit", fit.toFixed(3));
-    equalizeTitles(left, right);
-    sizeRule(left, "left");
-    sizeRule(right, "right");
-    return copyFits(left, leftCard) && copyFits(right, rightCard);
-  };
-  if (apply(1)) return;
-  let low = floor;
-  let high = 1;
-  let best = floor;
-  for (let step = 0; step < 10; step += 1) {
-    const mid = (low + high) / 2;
-    if (apply(mid)) {
-      best = mid;
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
-  apply(best);
-}
-
-function placeNameRow(
-  frame: HTMLElement,
-  name: HTMLElement,
-  width: number,
-  limitLeft: number,
-  limitRight: number,
-  scale: number,
-) {
-  const icon = Math.max(26, Math.round(frame1Config.icons.size * scale));
-  const gap = Math.max(8, Math.round(frame1Config.icons.nameGap * scale));
-  frame.style.setProperty("--icon-size", `${icon}px`);
-  const nameW = name.getBoundingClientRect().width;
-  const rowLeft = width / 2 - nameW / 2 - gap - icon;
-  const rowRight = width / 2 + nameW / 2 + gap + icon;
-  const inside = rowLeft >= limitLeft - 0.5 && rowRight <= limitRight + 0.5;
-  return { inside, icon, gap, nameW };
-}
-
-/**
- * Shrinks the name until the name and its icons sit inside the limits.
- * "fit" scales the name and the line under it together. "scale" only
- * scales the name, and keeps the line at its normal size.
- * Returns false when the row still sticks out at the smallest size.
- */
-function fitCenter(
-  frame: HTMLElement,
-  width: number,
-  limitLeft: number,
-  limitRight: number,
-  mode: "fit" | "scale" = "fit",
-) {
-  const name = frame.querySelector<HTMLElement>(".middle-name");
-  if (!name) return true;
-  const minFit = frame1Config.layout.minText / frame1Config.middle.moreSize;
-  let floor = minFit;
-  let ceiling = 1;
-  if (mode === "scale") {
-    frame.style.setProperty("--name-fit", "1");
-    frame.style.setProperty("--name-scale", "1");
-    const base = Number.parseFloat(getComputedStyle(name).fontSize) || 40;
-    floor = Math.min(1, frame1Config.layout.mediumNameMin / base);
-    ceiling = Math.max(floor, frame1Config.layout.mediumNameScale);
-  }
-  const apply = (value: number) => {
-    if (mode === "scale") {
-      frame.style.setProperty("--name-fit", "1");
-      frame.style.setProperty("--name-scale", value.toFixed(3));
-    } else {
-      frame.style.setProperty("--name-fit", value.toFixed(3));
-      frame.style.setProperty("--name-scale", "1");
-    }
-    return placeNameRow(frame, name, width, limitLeft, limitRight, value);
-  };
-  let fit = ceiling;
-  if (!apply(ceiling).inside) {
-    let low = floor;
-    let high = ceiling;
-    fit = floor;
-    for (let step = 0; step < 12; step += 1) {
-      const mid = (low + high) / 2;
-      if (apply(mid).inside) {
-        fit = mid;
-        low = mid;
-      } else {
-        high = mid;
-      }
-    }
-  }
-  const placed = apply(fit);
-  const icon = Math.min(placed.icon, Math.max(22, name.offsetHeight));
-  const nameW = name.getBoundingClientRect().width;
-  frame.style.setProperty("--icon-size", `${icon}px`);
-  frame.style.setProperty("--name-h", `${name.offsetHeight}px`);
-  frame.style.setProperty("--icon-github-x", `${width / 2 - nameW / 2 - placed.gap - icon}px`);
-  frame.style.setProperty("--icon-linkedin-x", `${width / 2 + nameW / 2 + placed.gap}px`);
-  return placed.inside;
-}
-
-/** True when the name, the line under it, or an icon meets the panel text. */
-function centerHitsCopy(frame: HTMLElement) {
-  const centers = [".middle-name", ".middle-lead", ".middle-more", ".icon-github", ".icon-linkedin"]
-    .map((selector) => frame.querySelector<HTMLElement>(selector))
-    .filter((node): node is HTMLElement => Boolean(node));
-  const copies = frame.querySelectorAll<HTMLElement>(
-    ".card-copy-full .title, .card-copy-full .label, .card-copy-full .text, .card-copy-full .invite, .card-copy-full .course",
-  );
-  const gap = 4;
-  for (const center of centers) {
-    const a = center.getBoundingClientRect();
-    if (a.width < 1 || a.height < 1) continue;
-    for (const copy of copies) {
-      const b = copy.getBoundingClientRect();
-      if (b.width < 1 || b.height < 1) continue;
-      const clear =
-        a.right < b.left - gap || a.left > b.right + gap || a.bottom < b.top - gap || a.top > b.bottom + gap;
-      if (!clear) return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Sloped panel mask. The inner edge leans toward the center, and the fade
- * runs along that slope. White is visible. The outer corners stay rounded.
- */
-function panelMask(side: "left" | "right", width: number, height: number, lean: number, radius: number, fade: number) {
-  const w = Math.max(1, Math.round(width));
-  const h = Math.max(1, Math.round(height));
-  const leanPx = Math.max(0, Math.min(lean, w - 2));
-  const r = Math.max(0, Math.min(radius, h / 2 - 1, (w - leanPx) / 2 - 1));
-  const length = Math.hypot(leanPx, h) || 1;
-  const band = Math.max(10, fade);
-  let x1: number;
-  let y1: number;
-  let x2: number;
-  let y2: number;
-  let d: string;
-  if (side === "left") {
-    const mx = w - leanPx / 2;
-    const my = h / 2;
-    x2 = mx;
-    y2 = my;
-    x1 = mx - (h / length) * band;
-    y1 = my - (leanPx / length) * band;
-    d = [
-      `M ${r.toFixed(2)} 0`,
-      `H ${w}`,
-      `L ${(w - leanPx).toFixed(2)} ${h}`,
-      `H ${r.toFixed(2)}`,
-      `A ${r} ${r} 0 0 1 0 ${(h - r).toFixed(2)}`,
-      `V ${r.toFixed(2)}`,
-      `A ${r} ${r} 0 0 1 ${r.toFixed(2)} 0`,
-      "Z",
-    ].join(" ");
-  } else {
-    const mx = leanPx / 2;
-    const my = h / 2;
-    x2 = mx;
-    y2 = my;
-    x1 = mx + (h / length) * band;
-    y1 = my - (leanPx / length) * band;
-    d = [
-      "M 0 0",
-      `H ${(w - r).toFixed(2)}`,
-      `A ${r} ${r} 0 0 1 ${w} ${r.toFixed(2)}`,
-      `V ${(h - r).toFixed(2)}`,
-      `A ${r} ${r} 0 0 1 ${(w - r).toFixed(2)} ${h}`,
-      `H ${leanPx.toFixed(2)}`,
-      "Z",
-    ].join(" ");
-  }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><path d="${d}" fill="url(#g)"/></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-}
-
-/**
- * Drops the campus photo just enough that its landmark starts below the text.
- * A scale of 1 shows the whole photo. Anything larger crops a little foreground.
- */
-function placePhoto(frame: HTMLElement, side: "left" | "right", mark: number) {
-  const card = frame.querySelector<HTMLElement>(`.card-${side}`);
-  const copy = visibleCopy(frame, side);
-  if (!card || !copy) return;
-  const cardRect = card.getBoundingClientRect();
-  const copyRect = copy.getBoundingClientRect();
-  if (cardRect.height < 2 || copyRect.height < 2) return;
-  const need = copyRect.bottom - cardRect.top + 16;
-  const markPx = Math.max(1, mark * cardRect.height);
-  const scale = need <= markPx ? 1 : Math.min(1.08, need / markPx);
-  frame.style.setProperty(side === "left" ? "--buas-scale" : "--bilkent-scale", scale.toFixed(3));
-}
-
-/** Rebuilds each panel mask from the card's live box, so the slope follows a resize or the opening. */
-function refreshPanelMasks(element: HTMLElement) {
-  const lean = Number.parseFloat(getComputedStyle(element).getPropertyValue("--lean")) || 0;
-  const fade = Number.parseFloat(getComputedStyle(element).getPropertyValue("--edge-fade")) || 24;
-  const radius = element.dataset.stack === "1" ? frame1Config.layout.radius : 0;
-  for (const side of ["left", "right"] as const) {
-    const card = element.querySelector<HTMLElement>(`.card-${side}`);
-    if (!card) continue;
-    const rect = card.getBoundingClientRect();
-    if (rect.width < 2 || rect.height < 2) continue;
-    const key = `${Math.round(rect.width)}x${Math.round(rect.height)}:${Math.round(lean)}`;
-    if (card.dataset.maskKey === key) continue;
-    card.dataset.maskKey = key;
-    card.style.setProperty("--panel-w", `${rect.width.toFixed(1)}px`);
-    card.style.setProperty("--panel-h", `${rect.height.toFixed(1)}px`);
-    card.style.setProperty("--panel-mask", panelMask(side, rect.width, rect.height, lean, radius, fade));
-  }
-}
-
-function Asset({
-  src,
-  alt,
-  className,
-}: {
-  src: string;
-  alt: string;
-  className?: string;
-}) {
+function Asset({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const [missing, setMissing] = useState(false);
   if (missing) {
     return (
@@ -470,106 +128,235 @@ function LinkedInIcon() {
   );
 }
 
-function InviteLine() {
-  const ref = useRef<SVGSVGElement>(null);
-  useLayoutEffect(() => {
-    const svg = ref.current;
-    const path = svg?.querySelector("path");
-    if (!svg || !path) return;
-    const fit = () => {
-      const view = svg.viewBox.baseVal.width || 120;
-      const width = svg.getBoundingClientRect().width;
-      const scale = width > 0 ? width / view : 1;
-      const rendered = Math.max(1, path.getTotalLength() * scale);
-      svg.style.setProperty("--invite-length", `${rendered.toFixed(2)}`);
-    };
-    fit();
-    const observer = new ResizeObserver(fit);
-    observer.observe(svg);
-    return () => observer.disconnect();
-  }, []);
-  return (
-    <svg ref={ref} className="invite-line" viewBox="0 0 120 8" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        d="M1 4.2 C 14 2.6, 24 5.4, 38 3.7 S 62 2.5, 78 4.4 S 100 2.8, 119 3.6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
+/** Dashed return from "play the level" to "builds a level", measured from the two lines. */
+function drawLoop(frame: HTMLElement, scale: number) {
+  const flow = frame.querySelector<HTMLElement>(".flow");
+  const svg = flow?.querySelector("svg");
+  const play = frame.querySelector<HTMLElement>('[data-anchor="play"]');
+  const build = frame.querySelector<HTMLElement>('[data-anchor="build"]');
+  if (!flow || !svg || !play || !build) return;
+  const base = flow.getBoundingClientRect();
+  const played = play.getBoundingClientRect();
+  const built = build.getBoundingClientRect();
+  svg.replaceChildren();
+  if (base.width < 2 || played.width < 2 || built.width < 2) return;
+  const gy = built.top - base.top + built.height / 2;
+  const cy = played.top - base.top + played.height / 2;
+  const reach = 52 * scale;
+  const gap = 12 * scale;
+  const xr = Math.max(played.right, built.right) - base.left + reach;
+  const x0 = played.right - base.left + gap;
+  const x1 = built.right - base.left + gap;
+  const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  curve.setAttribute("d", `M${x0} ${cy} C ${xr} ${cy}, ${xr} ${gy}, ${x1} ${gy}`);
+  curve.setAttribute("fill", "none");
+  curve.setAttribute("stroke", "#f4a38a");
+  curve.setAttribute("stroke-width", "2");
+  curve.setAttribute("stroke-dasharray", "5 5");
+  const head = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  head.setAttribute("d", `M${x1 + 9} ${gy - 6} L ${x1} ${gy} L ${x1 + 9} ${gy + 6}`);
+  head.setAttribute("fill", "none");
+  head.setAttribute("stroke", "#f4a38a");
+  head.setAttribute("stroke-width", "2");
+  head.setAttribute("stroke-linecap", "round");
+  head.setAttribute("stroke-linejoin", "round");
+  const width = Math.max(base.width, xr + 16);
+  svg.setAttribute("viewBox", `0 0 ${width} ${Math.max(1, base.height)}`);
+  svg.style.width = `${width}px`;
+  svg.append(curve, head);
 }
 
-function InviteArrow({ direction }: { direction: "right" | "down" }) {
-  if (direction === "down") {
-    return (
-      <svg className="invite-arrow invite-arrow-down" viewBox="0 0 14 16" aria-hidden="true">
-        <path
-          d="M7.1 1.6 C 6.6 5.2, 7.5 8.4, 6.8 11.4"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.35"
-          strokeLinecap="round"
-        />
-        <path
-          d="M3.2 8.7 C 4.9 10.5, 6.1 11.7, 7 12.8 C 8.1 11.3, 9.7 10.1, 11.3 8.6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.35"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
+function placeIcons(frame: HTMLElement, scale: number) {
+  const hero = frame.querySelector<HTMLElement>(".hero");
+  const alper = frame.querySelector<HTMLElement>(".name-alper");
+  const surname = frame.querySelector<HTMLElement>(".name-sur");
+  const github = frame.querySelector<HTMLElement>(".icon-github");
+  const linkedin = frame.querySelector<HTMLElement>(".icon-linkedin");
+  if (!hero || !alper || !surname || !github || !linkedin) return;
+  const shift = surname.style.transform;
+  surname.style.transform = "none";
+  const origin = hero.getBoundingClientRect();
+  const first = alper.getBoundingClientRect();
+  const last = surname.getBoundingClientRect();
+  surname.style.transform = shift;
+  const icon = Math.max(26, Math.round(frame1Config.icons.size * scale));
+  const gap = Math.max(8, Math.round(frame1Config.icons.nameGap * scale));
+  const top = last.top - origin.top + (last.height - icon) / 2;
+  frame.style.setProperty("--icon-size", `${icon}px`);
+  github.style.top = `${top}px`;
+  linkedin.style.top = `${top}px`;
+  github.style.left = `${first.left - origin.left - gap - icon}px`;
+  linkedin.style.left = `${last.right - origin.left + gap}px`;
+}
+
+/** Moves the visible "Alper" from the cover onto the settled name. */
+function placeAlper(frame: HTMLElement, p: number) {
+  const hero = frame.querySelector<HTMLElement>(".hero");
+  const float = frame.querySelector<HTMLElement>(".alper-float");
+  const inner = frame.querySelector<HTMLElement>(".alper-float-in");
+  const from = frame.querySelector<HTMLElement>(".hi-alper");
+  const to = frame.querySelector<HTMLElement>(".name-alper");
+  if (!hero || !float || !inner || !from || !to) return;
+  const previous = float.style.transform;
+  float.style.transform = "none";
+  const origin = hero.getBoundingClientRect();
+  const host = float.getBoundingClientRect();
+  const word = inner.getBoundingClientRect();
+  const start = from.getBoundingClientRect();
+  const end = to.getBoundingClientRect();
+  const dx = word.left - host.left;
+  const dy = word.top - host.top;
+  const coverSize = Number.parseFloat(getComputedStyle(from).fontSize) || 72;
+  const nameSize = Number.parseFloat(getComputedStyle(to).fontSize) || 66;
+  const m = seg(p, 0.1, 0.52);
+  const sc = lerp(1, nameSize / coverSize, m);
+  const x = lerp(start.left, end.left, m) - origin.left - dx * sc;
+  const y = lerp(start.top, end.top, m) - origin.top - dy * sc;
+  float.style.transform = previous;
+  float.style.transform = `translate(${x}px, ${y}px) scale(${sc})`;
+}
+
+function setInert(frame: HTMLElement, selector: string, inert: boolean) {
+  frame.querySelectorAll<HTMLElement>(selector).forEach((node) => {
+    if (node.inert !== inert) node.inert = inert;
+  });
+}
+
+/** Writes one frame of the opening. p = 0 is the cover and p = 1 is the full frame. */
+function paint(frame: HTMLElement, p: number, scale: number, stack: boolean, reduced: boolean) {
+  const stage = frame1Config.stage;
+  const progress = reduced ? (p >= 0.5 ? 1 : 0) : clamp01(p);
+  const portraitT = seg(progress, 0, 0.6);
+  const portraitFrom = stack ? Math.min(300, frame.clientWidth * 0.72) : stage.portraitFrom * scale;
+  const portraitTo = stack ? portraitFrom * (stage.portraitTo / stage.portraitFrom) : stage.portraitTo * scale;
+  const topFrom = stack ? 0 : stage.portraitTopFrom * scale;
+  const topTo = stack ? 0 : stage.portraitTopTo * scale;
+  frame.style.setProperty("--portrait-size", `${lerp(portraitFrom, portraitTo, portraitT).toFixed(2)}px`);
+  frame.style.setProperty("--portrait-top", `${lerp(topFrom, topTo, portraitT).toFixed(2)}px`);
+
+  const cover = seg(progress, 0, 0.22);
+  const hi = seg(progress, 0.02, 0.24);
+  frame.style.setProperty("--cover-o", (1 - cover).toFixed(4));
+  frame.style.setProperty("--hi-o", (1 - hi).toFixed(4));
+  frame.style.setProperty("--think-y", (-12 * (stack ? 1 : scale) * cover).toFixed(2));
+
+  const surname = seg(progress, 0.44, 0.6);
+  frame.style.setProperty("--sur-o", surname.toFixed(4));
+  frame.style.setProperty("--sur-x", (-16 * (1 - surname)).toFixed(2));
+
+  const role = seg(progress, 0.54, 0.7);
+  frame.style.setProperty("--role-o", role.toFixed(4));
+  frame.style.setProperty("--role-scale", lerp(1.5, 1, role).toFixed(4));
+  frame.style.setProperty("--role-track", lerp(0.7, 0.26, role).toFixed(4));
+  frame.style.setProperty("--role-line", `${(stack ? 28 : 36 * scale) * role}px`);
+
+  const quote = seg(progress, 0.62, 0.8);
+  frame.style.setProperty("--vision-o", quote.toFixed(4));
+  frame.style.setProperty("--vision-y", (16 * (1 - quote)).toFixed(2));
+
+  const status = seg(progress, 0.7, 0.88);
+  frame.style.setProperty("--now-o", status.toFixed(4));
+  frame.style.setProperty("--now-y", (12 * (1 - status)).toFixed(2));
+
+  const cards = stack ? 1 : seg(progress, 0.12, 0.58);
+  frame.style.setProperty("--card-o", cards.toFixed(4));
+  frame.style.setProperty("--card-x", stack ? "0" : ((1 - cards) * stage.cardSlide * scale).toFixed(2));
+
+  placeAlper(frame, progress);
+  placeIcons(frame, stack ? Math.min(1, frame.clientWidth / 390) : scale);
+  setInert(frame, ".card", !stack && cards < 0.45);
+  setInert(frame, ".icon-link", surname < 0.45);
+}
+
+function contentOverflow(frame: HTMLElement) {
+  const top = frame.getBoundingClientRect().top;
+  let bottom = 0;
+  frame.querySelectorAll<HTMLElement>(".identity, .card-copy, .cover").forEach((node) => {
+    const box = node.getBoundingClientRect();
+    if (box.height > 1) bottom = Math.max(bottom, box.bottom - top);
+  });
+  return bottom - frame.clientHeight;
+}
+
+function syncStackPage(frame: HTMLElement, stack: boolean) {
+  const page = frame.closest<HTMLElement>(".page-opening");
+  const stick = frame.closest<HTMLElement>(".page-stick");
+  const fade = frame.parentElement;
+  if (!page || !stick || !fade) return;
+  if (!stack) {
+    if (page.dataset.stackGrow === "1") {
+      page.style.height = "";
+      stick.style.position = "";
+      stick.style.height = "";
+      stick.style.overflow = "";
+      fade.style.height = "";
+      delete page.dataset.stackGrow;
+    }
+    return;
   }
-  return (
-    <svg className="invite-arrow" viewBox="0 0 20 12" aria-hidden="true">
-      <path
-        d="M1.4 6.2 C 6.2 5.4, 10.4 6.8, 15.2 5.7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-      />
-      <path
-        d="M11.2 2.1 C 13.4 3.6, 14.8 4.8, 16.4 6.1 C 14.6 7.3, 12.8 8.8, 11.1 10.3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  stick.style.position = "relative";
+  stick.style.height = "auto";
+  stick.style.overflow = "visible";
+  fade.style.height = "auto";
+  const next = `${Math.ceil(frame.offsetHeight + window.innerHeight)}px`;
+  if (page.style.height !== next) page.style.height = next;
+  page.dataset.stackGrow = "1";
 }
 
-function Invite({
-  children,
-  arrow,
-  className,
-}: {
-  children: string;
-  arrow?: "right" | "down";
-  className?: string;
-}) {
-  return (
-    <span className={className ? `invite ${className}` : "invite"}>
-      <span className="invite-text">{children}</span>
-      {arrow ? <InviteArrow direction={arrow} /> : null}
-      <InviteLine />
-    </span>
+function Flow() {
+  const { rows, result } = frame1Config.buas;
+  const items: React.ReactNode[] = [];
+  rows.forEach((row, index) => {
+    if (index > 0) {
+      items.push(<div className="flow-arrow" key={`arrow-${row.tag}`} />);
+      items.push(<div className="flow-arrow-span" key={`span-${row.tag}`} />);
+    }
+    const anchor = "anchor" in row ? row.anchor : undefined;
+    items.push(
+      <div className="node" key={row.tag}>
+        <span className={`tag tag-${row.tone}`}>{row.tag}</span>
+        <span className="act" data-anchor={anchor}>
+          {"mark" in row ? (
+            <>
+              {row.text} <u>{row.mark}</u>
+            </>
+          ) : (
+            row.text
+          )}
+        </span>
+      </div>,
+    );
+  });
+  items.push(<div className="flow-arrow" key="arrow-result" />);
+  items.push(<div className="flow-arrow-span" key="span-result" />);
+  items.push(
+    <div className="node" key="result">
+      <span className="tick" aria-hidden="true">
+        ✓
+      </span>
+      <span className="act">
+        <strong>{result}</strong>
+      </span>
+    </div>,
   );
-}
-
-function CampusPhoto({ src, side }: { src: string; side: "buas" | "bilkent" }) {
   return (
-    <div className="duotone">
-      <Asset src={src} alt="" className={side === "buas" ? "campus campus-buas" : "campus campus-bilkent"} />
-      <div className="tone-hue fill" />
-      <div className="tone-lift fill" />
+    <div className="flow">
+      {items}
+      <svg className="loop" aria-hidden="true" />
     </div>
+  );
+}
+
+function StatusText() {
+  const { building, buildingEm } = frame1Config.center;
+  const at = building.indexOf(buildingEm);
+  if (at < 0) return <>{building}</>;
+  return (
+    <>
+      {building.slice(0, at)}
+      <strong>{buildingEm}</strong>
+      {building.slice(at + buildingEm.length)}
+    </>
   );
 }
 
@@ -595,395 +382,131 @@ function ResearchPlan() {
 
 function Courses() {
   return (
-    <div className="courses">
+    <ul className="courses">
       {frame1Config.courses.map((course) => (
-        <a
-          key={course.href}
-          className="course"
-          href={course.href}
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          <span className="course-code">{course.code}</span>{" "}
-          <span className="course-name">{course.name}</span>
-        </a>
+        <li key={course.href}>
+          <a className="course" href={course.href} target="_blank" rel="noreferrer noopener">
+            <span className="course-code">{course.code}</span>
+            <span className="course-name">{course.name}</span>
+          </a>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
 export function Frame1() {
   const reduced = usePrefersReducedMotion();
-  const scrollOpening = true;
-  const playOpening = !scrollOpening && frame1Config.effects.OPENING_SEQUENCE && !reduced;
-  const progressRef = useRef(0);
-  const metricsRef = useRef<Metrics>({ startH: 0, startTop: 0, fullH: 0, fullTop: 0 });
   const reducedRef = useRef(reduced);
   reducedRef.current = reduced;
-  const [shown, setShown] = useState<Shown>(playOpening ? NONE_SHOWN : ALL_SHOWN);
-  const [stacked, setStacked] = useState(false);
-
+  const progressRef = useRef(0);
   const frameRef = useRef<HTMLDivElement>(null);
   const researchButtonRef = useRef<HTMLButtonElement>(null);
   const researchCloseRef = useRef<HTMLButtonElement>(null);
-  const whyDesktopRef = useRef<HTMLButtonElement>(null);
-  const whyDetailRef = useRef<HTMLButtonElement>(null);
-  const detailReturnRef = useRef<HTMLButtonElement | null>(null);
-  const [research, setResearch] = useState<ResearchPose | null>(null);
-  const [detail, setDetail] = useState<DetailSide | null>(null);
-  const [detailPose, setDetailPose] = useState<ResearchPose>("from");
-  const [cueOn, setCueOn] = useState(true);
+  const whyRef = useRef<HTMLButtonElement>(null);
   const researchWasOpen = useRef(false);
-  const detailWasOpen = useRef(false);
-  const measureRef = useRef<() => void>(() => {});
-
-  useEffect(() => {
-    if (!playOpening) {
-      setShown(ALL_SHOWN);
-      return;
-    }
-    setShown(NONE_SHOWN);
-    const timers = OPENING_STEPS.map(([at, key]) =>
-      window.setTimeout(() => {
-        setShown((current) => ({ ...current, [key]: true }));
-      }, at),
-    );
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
-  }, [playOpening]);
+  const [stacked, setStacked] = useState(() => window.innerWidth < frame1Config.stage.stackBelow);
+  const [research, setResearch] = useState<ResearchPose | null>(null);
 
   useLayoutEffect(() => {
-    const element = frameRef.current;
-    if (!element) return;
+    const frame = frameRef.current;
+    if (!frame) return;
 
-    const measure = () => {
-      const layout = frame1Config.layout;
-      const width = element.clientWidth;
-      const height = element.clientHeight;
+    const layout = () => {
+      const width = frame.clientWidth;
+      const height = frame.clientHeight;
       if (width < 2 || height < 2) return;
-
-      const layoutAt = (stack: boolean, medium: boolean) => {
-        element.dataset.stack = stack ? "1" : "0";
-        element.dataset.medium = medium ? "1" : "0";
-        element.style.setProperty("--name-fit", "1");
-        element.style.setProperty("--name-scale", medium ? layout.mediumNameScale.toFixed(3) : "1");
-        const margin = frameMargin(height);
-        const hair = frame1Config.portraitLayout.hairTopY;
-        const aspect = portraitAspect(element);
-        element.style.setProperty("--portrait-aspect", String(aspect));
-        element.style.setProperty("--margin", `${margin}px`);
-
-        const name = element.querySelector<HTMLElement>(".middle-name");
-        const under = element.querySelector<HTMLElement>(".under-name");
-        const hint = element.querySelector<HTMLElement>(".middle-hint");
-        const nameH = name?.offsetHeight ?? 48;
-        const underH = under?.offsetHeight ?? 28;
-        const bleed = stack ? 0 : margin;
-        element.style.setProperty("--bleed", `${bleed}px`);
-
-        let cardW: number;
-        let lean: number;
-        let panelH: number;
-        let fullH: number;
-        let fullTop: number;
-        let limitLeft: number;
-        let limitRight: number;
-
-        if (stack) {
-          const pad = Math.max(14, Math.round(Math.min(28, width * 0.04)));
-          const leanWanted = layout.lean * width;
-          const gap = leanWanted * 2 + 16;
-          const roomW = width - pad * 2 - gap;
-          cardW = Math.max(120, roomW / 2);
-          const topGap = gap - leanWanted * 2;
-          lean = topGap < 12 ? Math.max(0, (gap - 12) / 2) : leanWanted;
-          const chrome = pad + layout.nameGap + nameH + layout.lineGap + underH + 18 + pad;
-          const roomH = Math.max(220, height - chrome);
-          fullH = Math.min(height * 0.32, Math.max(140, roomH * 0.38));
-          panelH = Math.max(168, roomH - fullH);
-          const hairY = pad + 2;
-          fullTop = topForHair(hairY, fullH);
-          element.style.setProperty("--stack-pad", `${pad}px`);
-          element.style.setProperty("--stack-bottom", `${pad}px`);
-          element.style.setProperty("--stack-card-w", `${cardW}px`);
-          limitLeft = pad;
-          limitRight = width - pad;
-        } else {
-          cardW = width * layout.cardWidth;
-          lean = layout.lean * width;
-          panelH = height;
-          const textInner = margin + cardW + lean * 0.58 - 20;
-          const maxW = Math.max(160, (width / 2 - textInner - 12) / frame1Config.portraitLayout.mask.rx);
-          fullH = Math.min(height * layout.portrait * aspect, maxW) / Math.max(aspect, 0.01);
-          fullTop = topForHair(layout.hairFrame * height, fullH);
-          if (medium) {
-            limitLeft = textInner + layout.mediumClearance;
-            limitRight = width - textInner - layout.mediumClearance;
-          } else {
-            const gutter = layout.columnGutter;
-            limitLeft = margin + gutter;
-            limitRight = width - margin - gutter;
-          }
-        }
-
-        const fade = layout.edgeFade * cardW;
-        const panelW = cardW + lean + bleed;
-        element.style.setProperty("--card-w", `${cardW}px`);
-        element.style.setProperty("--lean", `${lean}px`);
-        element.style.setProperty("--edge-fade", `${fade}px`);
-        element.style.setProperty("--panel-w", `${panelW}px`);
-        element.style.setProperty("--panel-h", `${panelH}px`);
-        const leftCard = element.querySelector<HTMLElement>(".card-left");
-        const rightCard = element.querySelector<HTMLElement>(".card-right");
-        const radius = stack ? layout.radius : 0;
-        if (leftCard) {
-          leftCard.style.setProperty("--panel-mask", panelMask("left", panelW, panelH, lean, radius, fade));
-        }
-        if (rightCard) {
-          rightCard.style.setProperty("--panel-mask", panelMask("right", panelW, panelH, lean, radius, fade));
-        }
-
-        const betweenCards = width - 2 * (margin + cardW) - 2 * layout.columnGutter;
-        const column = Math.max(160, stack ? width - 32 : medium ? limitRight - limitLeft : betweenCards);
-        element.style.setProperty("--column", `${column}px`);
-        element.style.setProperty("--portrait-h", `${fullH}px`);
-        element.style.setProperty("--portrait-top", `${fullTop}px`);
-        fitCopies(element);
-        const inside = fitCenter(element, width, limitLeft, limitRight, medium ? "scale" : "fit");
-        const identity = element.querySelector<HTMLElement>(".identity");
-        const block = identity?.offsetHeight
-          || (name?.offsetHeight ?? nameH) + layout.lineGap + (under?.offsetHeight ?? underH);
-        const chrome = layout.nameGap + block;
-        const startChrome =
-          layout.nameGap + (name?.offsetHeight ?? nameH) + layout.lineGap + (hint?.offsetHeight ?? 28);
-        if (!stack) {
-          const hairY = layout.hairFrame * height;
-          const roomH = (height - layout.bottomRoom - chrome - hairY) / Math.max(0.45, 1 - hair);
-          if (roomH < fullH) {
-            fullH = Math.max(120, roomH);
-            fullTop = topForHair(hairY, fullH);
-            element.style.setProperty("--portrait-h", `${fullH}px`);
-            element.style.setProperty("--portrait-top", `${fullTop}px`);
-          }
-        }
-        const pad = stack ? Math.max(14, Math.round(Math.min(28, width * 0.04))) : 28;
-        let startH: number;
-        let startTop: number;
-        if (stack) {
-          const cardsTop = fullTop + fullH + chrome + 14;
-          element.style.setProperty("--stack-below", `${chrome}px`);
-          element.style.setProperty("--stack-cards-top", `${cardsTop}px`);
-          const startCap = height * layout.portraitStart;
-          const maxByRoom = (height - pad * 2 - startChrome) / Math.max(0.45, 1 - hair);
-          startH = Math.max(fullH, Math.min(startCap, Math.max(fullH, maxByRoom)));
-          const stackHeight = (1 - hair) * startH + startChrome;
-          const hairY = Math.max(pad, (height - stackHeight) / 2);
-          startTop = topForHair(hairY, startH);
-          const startIdentity = startTop + startH + chrome;
-          const slide = Math.max(24, Math.round(startIdentity - cardsTop + 16));
-          element.style.setProperty("--stack-slide", `${slide}px`);
-        } else {
-          const startCap = height * layout.portraitStart;
-          const maxByRoom = (height - pad * 2 - startChrome) / Math.max(0.45, 1 - hair);
-          startH = Math.max(fullH, Math.min(startCap, Math.max(fullH, maxByRoom)));
-          const stackHeight = (1 - hair) * startH + startChrome;
-          const hairY = Math.max(pad, (height - stackHeight) / 2);
-          startTop = topForHair(hairY, startH);
-        }
-        placePhoto(element, "left", frame1Config.photos.buasMark);
-        placePhoto(element, "right", frame1Config.photos.bilkentMark);
-        const enterLeft = leftCard ? leftCard.offsetLeft + leftCard.offsetWidth : panelW;
-        const enterRight = rightCard ? width - rightCard.offsetLeft : enterLeft;
-        element.style.setProperty("--enter-left", `${Math.ceil(enterLeft + 2)}px`);
-        element.style.setProperty("--enter-right", `${Math.ceil(enterRight + 2)}px`);
-        return { inside, metrics: { startH, startTop, fullH, fullTop } };
-      };
-
-      const baseStack = width < layout.stackBelow || height > width;
-      let stack = baseStack;
-      let medium = !stack && width <= layout.mediumUntil;
-      let laid = layoutAt(stack, medium);
-      if (medium) {
-        element.style.setProperty("--op", "1");
-        if (!laid.inside || centerHitsCopy(element)) {
-          stack = true;
-          medium = false;
-          laid = layoutAt(true, false);
-        }
-      }
+      const stack = width < frame1Config.stage.stackBelow;
+      frame.dataset.stack = stack ? "1" : "0";
       setStacked((current) => (current === stack ? current : stack));
-      metricsRef.current = laid.metrics;
-      const progress = scrollOpening ? progressRef.current : 1;
-      applyProgress(element, progress, laid.metrics, scrollOpening && reducedRef.current);
+      const stage = frame1Config.stage;
+      let scale = stack
+        ? Math.min(1, Math.max(0.78, (width - 36) / 440))
+        : Math.min(width / stage.width, height / stage.height);
+      const apply = (value: number) => {
+        frame.style.setProperty("--k", value.toFixed(4));
+        paint(frame, progressRef.current, value, stack, reducedRef.current);
+      };
+      apply(scale);
+      if (!stack) {
+        for (let pass = 0; pass < 4; pass += 1) {
+          const extra = contentOverflow(frame);
+          if (extra <= 6) break;
+          const next = Math.max(0.72, scale * ((height - 8) / (height + extra)));
+          if (next >= scale - 0.008) break;
+          scale = next;
+          apply(scale);
+        }
+        const extra = contentOverflow(frame);
+        if (extra > 8) {
+          frame.style.overflowY = "auto";
+          frame.dataset.grow = "1";
+        } else if (frame.dataset.grow === "1") {
+          frame.style.overflowY = "";
+          delete frame.dataset.grow;
+        }
+      } else if (frame.dataset.grow === "1") {
+        frame.style.overflowY = "";
+        delete frame.dataset.grow;
+      }
+      drawLoop(frame, scale);
+      syncStackPage(frame, stack);
     };
 
-    measureRef.current = measure;
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
+    layout();
+    const observer = new ResizeObserver(layout);
+    observer.observe(frame);
     let alive = true;
     document.fonts?.ready.then(() => {
-      if (alive) measure();
+      if (alive) layout();
     });
+    const page = frame.closest<HTMLElement>("[data-page]");
+    const onScroll = () => {
+      const value = page ? openingProgress(page) : 0;
+      if (value === progressRef.current) return;
+      progressRef.current = value;
+      const stack = frame.dataset.stack === "1";
+      const scale = Number.parseFloat(getComputedStyle(frame).getPropertyValue("--k")) || 1;
+      paint(frame, value, scale, stack, reducedRef.current);
+    };
+    progressRef.current = page ? openingProgress(page) : 0;
+    paint(
+      frame,
+      progressRef.current,
+      Number.parseFloat(frame.style.getPropertyValue("--k")) || 1,
+      frame.dataset.stack === "1",
+      reducedRef.current,
+    );
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       alive = false;
       observer.disconnect();
+      window.removeEventListener("scroll", onScroll);
     };
-  }, [scrollOpening]);
-
-  useLayoutEffect(() => {
-    measureRef.current();
-  }, [stacked]);
-
-  useLayoutEffect(() => {
-    const element = frameRef.current;
-    // The fade layer sits between this frame and its page, so the page is not the parent.
-    const page = element?.closest<HTMLElement>("[data-page]");
-    if (!scrollOpening || !element || !page) return;
-    let applied = -1;
-    const read = (event?: Event) => {
-      const value = openingProgress(page);
-      if (event?.type === "scroll" && value === applied) return;
-      applied = value;
-      progressRef.current = value;
-      applyProgress(element, value, metricsRef.current, reducedRef.current);
-      setCueOn(value <= 0);
-    };
-    read();
-    window.addEventListener("scroll", read, { passive: true });
-    window.addEventListener("resize", read);
-    return () => {
-      window.removeEventListener("scroll", read);
-      window.removeEventListener("resize", read);
-    };
-  }, [scrollOpening, reduced]);
+  }, []);
 
   useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
-    const fitPanel = () => {
-      const panel = frame.querySelector<HTMLElement>(".why-panel");
-      if (!panel) return;
-      const edge = 16;
-      const maxW = Math.min(520, Math.max(160, frame.clientWidth - edge * 2));
-      const maxH = Math.max(80, frame.clientHeight - edge * 2);
-      panel.style.maxWidth = `${maxW}px`;
-      panel.style.maxHeight = `${maxH}px`;
-      const box = frame.getBoundingClientRect();
-      const rect = panel.getBoundingClientRect();
-      let left = panel.offsetLeft;
-      let top = panel.offsetTop;
-      if (rect.right > box.right - edge) left -= rect.right - (box.right - edge);
-      if (rect.left < box.left + edge) left += box.left + edge - rect.left;
-      if (rect.bottom > box.bottom - edge) top -= rect.bottom - (box.bottom - edge);
-      if (rect.top < box.top + edge) top += box.top + edge - rect.top;
-      const width = panel.offsetWidth;
-      const height = panel.offsetHeight;
-      left = Math.max(edge, Math.min(left, frame.clientWidth - edge - width));
-      top = Math.max(edge, Math.min(top, frame.clientHeight - edge - height));
-      panel.style.left = `${left}px`;
-      panel.style.top = `${top}px`;
-    };
-    const observer = new MutationObserver(fitPanel);
-    observer.observe(frame, { childList: true, subtree: true });
-    window.addEventListener("resize", fitPanel);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", fitPanel);
-    };
+    const stack = frame.dataset.stack === "1";
+    const scale = Number.parseFloat(getComputedStyle(frame).getPropertyValue("--k")) || 1;
+    paint(frame, progressRef.current, scale, stack, reduced);
+  }, [reduced]);
+
+  useEffect(() => {
+    const button = whyRef.current;
+    const frame = frameRef.current;
+    if (!button || !frame) return;
+    const why = frame1Config.bilkentWhy;
+    const note = attachWhyNote(button, frame, {
+      paragraphs: why.paragraphs,
+      highlights: why.highlights,
+      label: why.label,
+    });
+    return () => note.destroy();
   }, []);
 
-  useScrollLock(Boolean(research || detail));
-
-  const mask = frame1Config.portraitLayout.mask;
-  const style = {
-    "--buas-tone": frame1Config.colors.buasTone,
-    "--bilkent-tone": frame1Config.colors.bilkentTone,
-    "--middle-tone": frame1Config.colors.middleTone,
-    "--photo-brightness": String(frame1Config.duotone.brightness),
-    "--photo-tint": String(frame1Config.duotone.tint),
-    "--photo-darken": String(frame1Config.duotone.darken),
-    "--portrait-grade": frame1Config.portraitGrade,
-    "--focus": frame1Config.focus,
-    "--radius": `${frame1Config.layout.radius}px`,
-    "--name-gap": `${frame1Config.layout.nameGap}px`,
-    "--line-gap": `${frame1Config.layout.lineGap}px`,
-    "--mark-h": `${frame1Config.layout.mark}px`,
-    "--min-text": `${frame1Config.layout.minText}px`,
-    "--mask-cx": `${mask.cx * 100}%`,
-    "--mask-cy": `${mask.cy * 100}%`,
-    "--mask-rx": `${mask.rx * 100}%`,
-    "--mask-ry": `${mask.ry * 100}%`,
-    "--mask-solid": `${mask.solid * 100}%`,
-    "--buas-photo": frame1Config.photos.buas,
-    "--bilkent-photo": frame1Config.photos.bilkent,
-    "--portrait-aspect": String(
-      frame1Config.portraitLayout.naturalWidth / frame1Config.portraitLayout.naturalHeight,
-    ),
-    "--space-divider": `${frame1Config.text.spaceDivider}px`,
-    "--space-label": `${frame1Config.text.spaceLabel}px`,
-    "--space-body": `${frame1Config.text.spaceBody}px`,
-    "--space-button": `${frame1Config.text.spaceButton}px`,
-    "--rule-opacity": String(frame1Config.text.ruleOpacity),
-    "--title-line": String(frame1Config.text.titleLine),
-    "--buas-title-size": frame1Config.text.buasTitleSize,
-    "--buas-title-weight": String(frame1Config.text.buasTitleWeight),
-    "--bilkent-title-size": frame1Config.text.bilkentTitleSize,
-    "--bilkent-title-weight": String(frame1Config.text.bilkentTitleWeight),
-    "--label-size": `${frame1Config.text.labelSize}px`,
-    "--label-weight": String(frame1Config.text.labelWeight),
-    "--label-shadow": frame1Config.text.labelShadow,
-    "--buas-label": frame1Config.text.buasLabel,
-    "--bilkent-label": frame1Config.text.bilkentLabel,
-    "--body-size": `${frame1Config.text.bodySize}px`,
-    "--body-weight": String(frame1Config.text.bodyWeight),
-    "--body-line": String(frame1Config.text.bodyLine),
-    "--body-opacity": String(frame1Config.text.bodyOpacity),
-    "--course-size": `${frame1Config.text.courseSize}px`,
-    "--course-code-weight": String(frame1Config.text.courseCodeWeight),
-    "--course-code-opacity": String(frame1Config.text.courseCodeOpacity),
-    "--course-name-weight": String(frame1Config.text.courseNameWeight),
-    "--course-name-opacity": String(frame1Config.text.courseNameOpacity),
-    "--course-underline": String(frame1Config.text.courseUnderline),
-    "--course-gap": `${frame1Config.text.courseGap}px`,
-    "--name-size": frame1Config.middle.nameSize,
-    "--name-line": String(frame1Config.middle.nameLine),
-    "--name-color": frame1Config.middle.nameColor,
-    "--lead-size": `${frame1Config.middle.leadSize}px`,
-    "--lead-weight": String(frame1Config.middle.leadWeight),
-    "--lead-line": String(frame1Config.middle.leadLine),
-    "--lead-color": frame1Config.middle.leadColor,
-    "--more-size": `${frame1Config.middle.moreSize}px`,
-    "--more-weight": String(frame1Config.middle.moreWeight),
-    "--more-line": String(frame1Config.middle.moreLine),
-    "--more-color": frame1Config.middle.moreColor,
-    "--more-measure": `${frame1Config.middle.moreMeasure}ch`,
-    "--more-gap": `${frame1Config.middle.moreGap}px`,
-    "--hint-size": `${frame1Config.middle.hintSize}px`,
-    "--mark-inset": `${frame1Config.layout.markInset}px`,
-    "--icon-lift": `${frame1Config.icons.lift}px`,
-    "--icon-linkedin": frame1Config.icons.linkedin,
-    "--icon-radius": `${frame1Config.icons.radius}px`,
-    "--invite-color": frame1Config.invite.color,
-    "--invite-size": `${frame1Config.invite.size}px`,
-    "--invite-draw": `${frame1Config.invite.draw}s`,
-    "--research-time": `${frame1Config.research.duration}s`,
-    "--research-dim": String(frame1Config.research.dim),
-    "--research-blur": `${frame1Config.research.blur}px`,
-    "--research-max": `${frame1Config.research.maxWidth}px`,
-    "--research-height": `${frame1Config.research.maxHeight * 100}%`,
-    "--research-navy": frame1Config.research.navy,
-    "--research-border": frame1Config.research.border,
-    "--research-radius": `${frame1Config.research.radius}px`,
-    "--research-close": `${frame1Config.research.close}px`,
-    "--cue-right": `${frame1Config.scrollCue.right * 100}%`,
-    "--cue-bottom": `${frame1Config.scrollCue.bottom * 100}%`,
-    "--cue-size": `${frame1Config.scrollCue.size}px`,
-    "--cue-weight": String(frame1Config.scrollCue.weight),
-    "--cue-opacity": String(frame1Config.scrollCue.opacity),
-    "--cue-nudge": `${frame1Config.scrollCue.nudge}px`,
-    "--cue-every": `${frame1Config.scrollCue.every}s`,
-    "--cue-fade": `${frame1Config.scrollCue.fade}s`,
-  } as React.CSSProperties;
+  useScrollLock(Boolean(research));
 
   useEffect(() => {
     if (!research) {
@@ -1007,71 +530,19 @@ export function Frame1() {
   }, [research, reduced]);
 
   useEffect(() => {
-    if (!detail) {
-      if (detailWasOpen.current) detailReturnRef.current?.focus();
-      return;
-    }
-    detailWasOpen.current = true;
-    if (detailPose === "from") {
-      const id = window.requestAnimationFrame(() => {
-        setDetailPose((current) => (current === "from" ? "open" : current));
-      });
-      return () => window.cancelAnimationFrame(id);
-    }
-    if (detailPose !== "back") return;
-    const timer = window.setTimeout(
-      () => {
-        setDetail(null);
-        setDetailPose("from");
-      },
-      (reduced ? 0.32 : frame1Config.research.duration + 0.08) * 1000,
-    );
-    return () => window.clearTimeout(timer);
-  }, [detail, detailPose, reduced]);
-
-  useEffect(() => {
-    if (!stacked && detail) {
-      setDetail(null);
-      setDetailPose("from");
-    }
-  }, [stacked, detail]);
-
-  useEffect(() => {
-    const button = detail ? whyDetailRef.current : whyDesktopRef.current;
-    const frame = frameRef.current;
-    if (!button || !frame) return;
-    const why = frame1Config.bilkentWhy;
-    const note = attachWhyNote(button, frame, { note: why.note, label: why.label });
-    return () => note.destroy();
-  }, [detail, stacked]);
-
-  useEffect(() => {
-    if (!research && !detail) return;
+    if (!research) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (research && research !== "back") {
-        event.preventDefault();
-        setResearch("back");
-        return;
-      }
-      if (detail && detailPose !== "back") {
-        event.preventDefault();
-        setDetailPose("back");
-      }
+      if (event.key !== "Escape" || research === "back") return;
+      event.preventDefault();
+      setResearch("back");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [research, detail, detailPose]);
+  }, [research]);
 
   const openResearch = (button: HTMLButtonElement) => {
     researchButtonRef.current = button;
     setResearch("from");
-  };
-
-  const openDetail = (side: DetailSide, button: HTMLButtonElement) => {
-    detailReturnRef.current = button;
-    setDetailPose("from");
-    setDetail(side);
   };
 
   const researchShift = (() => {
@@ -1084,249 +555,183 @@ export function Frame1() {
     };
   })();
 
-  const detailShift = (() => {
-    const button = detailReturnRef.current?.getBoundingClientRect();
-    const frame = frameRef.current?.getBoundingClientRect();
-    if (!button || !frame || button.width < 1) return { x: 0, y: 0 };
-    return {
-      x: button.left + button.width / 2 - (frame.left + frame.width / 2),
-      y: button.top + button.height / 2 - (frame.top + frame.height / 2),
-    };
-  })();
+  const mask = frame1Config.portraitLayout.mask;
+  const cover = frame1Config.cover;
+  const center = frame1Config.center;
+  const buas = frame1Config.buas;
+  const style = {
+    "--portrait-grade": frame1Config.portraitGrade,
+    "--focus": frame1Config.focus,
+    "--min-text": `${frame1Config.stage.minText}px`,
+    "--mask-cx": `${mask.cx * 100}%`,
+    "--mask-cy": `${mask.cy * 100}%`,
+    "--mask-rx": `${mask.rx * 100}%`,
+    "--mask-ry": `${mask.ry * 100}%`,
+    "--mask-solid": `${mask.solid * 100}%`,
+    "--icon-lift": `${frame1Config.icons.lift}px`,
+    "--icon-linkedin": frame1Config.icons.linkedin,
+    "--icon-radius": `${frame1Config.icons.radius}px`,
+    "--research-time": `${frame1Config.research.duration}s`,
+    "--research-dim": String(frame1Config.research.dim),
+    "--research-blur": `${frame1Config.research.blur}px`,
+    "--research-max": `${frame1Config.research.maxWidth}px`,
+    "--research-height": `${frame1Config.research.maxHeight * 100}%`,
+    "--research-navy": frame1Config.research.navy,
+    "--research-border": frame1Config.research.border,
+    "--research-radius": `${frame1Config.research.radius}px`,
+    "--research-close": `${frame1Config.research.close}px`,
+  } as React.CSSProperties;
 
-  const sheetMotion = (pose: ResearchPose, shift: { x: number; y: number }) => {
+  const sheetMotion = () => {
     if (reduced) return undefined;
+    const pose = research;
     return {
       transform:
         pose === "open"
           ? "translate(-50%, -50%)"
-          : `translate(-50%, -50%) translate(${shift.x}px, ${shift.y}px) scale(${frame1Config.research.fromScale})`,
+          : `translate(-50%, -50%) translate(${researchShift.x}px, ${researchShift.y}px) scale(${frame1Config.research.fromScale})`,
     };
   };
 
   return (
     <main
       ref={frameRef}
-      className={[
-        "frame",
-        playOpening ? "is-opening" : "",
-        scrollOpening ? "is-scroll-opening" : "",
-        reduced ? "is-reduced" : "",
-        research || detail ? "is-research" : "",
-      ].filter(Boolean).join(" ")}
+      className={["frame", "is-scroll-opening", reduced ? "is-reduced" : "", research ? "is-research" : ""]
+        .filter(Boolean)
+        .join(" ")}
       style={style}
-      data-bilkent={shown.bilkent ? "1" : "0"}
-      data-buas={shown.buas ? "1" : "0"}
-      data-middle={shown.middle ? "1" : "0"}
-      data-content={shown.content ? "1" : "0"}
-      data-name={shown.name ? "1" : "0"}
       data-stack={stacked ? "1" : "0"}
     >
       <div className="frame-world">
-        <section className="card card-left" aria-label="Breda University of Applied Sciences">
-          <div className="card-face">
-            <CampusPhoto src={frame1Config.assets.buasCampus} side="buas" />
-          </div>
-          <div className="card-copy card-copy-full">
-            <p className="title title-buas">Master Game Technology</p>
-            <div className="rule" />
-            <p className="label">AI & Procedural Generation</p>
-            <p className="text">
-              {frame1Config.buasLead} {frame1Config.buasRest}
+        <div className="hero-wrap">
+          <div className="hero">
+            <img
+              id="frame1-main-image"
+              className="portrait-sharp"
+              src={frame1Config.assets.portrait}
+              alt="Portrait of Alper Bozkurt"
+              draggable={false}
+            />
+            <div className="copy-stack">
+              <div className="cover">
+                <p className="hi">
+                  <span className="sr-only">
+                    {cover.hi} {cover.name}.
+                  </span>
+                  <span aria-hidden="true">
+                    <span className="hi-pre">{cover.hi} </span>
+                    <span className="hi-alper">{cover.name}</span>
+                    <span className="hi-dot">.</span>
+                  </span>
+                </p>
+                <p className="think">
+                  {cover.line1} <em>{cover.vision}</em>.<br />
+                  {cover.line2}
+                </p>
+                <p className="scroll-hint">{cover.scroll}</p>
+              </div>
+              <div className="identity">
+                <p className="middle-name">
+                  <span className="sr-only">
+                    {cover.name} {center.surname}
+                  </span>
+                  <span aria-hidden="true">
+                    <span className="name-alper">{cover.name}</span>
+                    <span className="name-sur">{center.surname}</span>
+                  </span>
+                </p>
+                <p className="role">
+                  <i className="role-line" />
+                  <span className="role-text">{center.role}</span>
+                  <i className="role-line" />
+                </p>
+                <p className="vision">
+                  <span className="q">“</span>
+                  {center.quoteBefore} <em>{center.quoteEm}</em> {center.quoteAfter}
+                  <span className="q">”</span>
+                </p>
+                <div className="now">
+                  <p className="status">
+                    <span className="live" aria-hidden="true" />
+                    {center.status}
+                    <span className="live" aria-hidden="true" />
+                  </p>
+                  <p className="now-text">
+                    <StatusText />
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="alper-float" aria-hidden="true">
+              <span className="alper-float-in">{cover.name}</span>
             </p>
-            <button
-              type="button"
-              className="invite research-open"
-              onClick={(event) => openResearch(event.currentTarget)}
+            <a
+              className="icon-link icon-github"
+              href={frame1Config.links.github}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="GitHub"
             >
-              <span className="invite-text">Explore my research</span>
-              <InviteArrow direction="right" />
-              <InviteLine />
+              <GitHubIcon />
+            </a>
+            <a
+              className="icon-link icon-linkedin"
+              href={frame1Config.links.linkedin}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="LinkedIn"
+            >
+              <LinkedInIcon />
+            </a>
+          </div>
+        </div>
+
+        <section className="card card-left" aria-label="Breda University of Applied Sciences">
+          <Asset src={frame1Config.assets.buasCampus} alt="Breda University campus" className="scene" />
+          <div className="card-copy">
+            <p className="title">{buas.title}</p>
+            <div className="rule" />
+            <p className="subtitle">{buas.subtitle}</p>
+            <Flow />
+            <button type="button" className="research-open" onClick={(event) => openResearch(event.currentTarget)}>
+              {buas.invite} <span aria-hidden="true">→</span>
             </button>
           </div>
-          <button
-            type="button"
-            className="card-copy card-compact"
-            onClick={(event) => openDetail("buas", event.currentTarget)}
+          <a
+            className="mark mark-buas"
+            href={frame1Config.links.buas}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="Breda University of Applied Sciences website"
           >
-            <span className="title title-buas">Master Game Technology</span>
-            <span className="label">AI & Procedural Generation</span>
-            <span className="text">{frame1Config.buasLead}</span>
-          </button>
+            <PlainLogo src={frame1Config.assets.buasLogo} />
+          </a>
         </section>
 
         <section className="card card-right" aria-label="Bilkent University">
-          <div className="card-face">
-            <CampusPhoto src={frame1Config.assets.bilkentCampus} side="bilkent" />
-          </div>
-          <div className="card-copy card-copy-full">
-            <p className="title title-bilkent">BSc Computer Engineering</p>
+          <Asset src={frame1Config.assets.bilkentCampus} alt="Bilkent University campus" className="scene" />
+          <div className="card-copy">
+            <p className="title">BSc Computer Engineering</p>
             <div className="rule" />
-            <p className="text why-line">
-              {frame1Config.bilkentWhy.line}{" "}
-              <button ref={whyDesktopRef} type="button" className="why-button">
+            <p className="subtitle">{frame1Config.bilkentWhy.line}</p>
+            <Courses />
+            <div className="why-slot">
+              <button ref={whyRef} type="button" className="why-button">
                 {frame1Config.bilkentWhy.label}
               </button>
-            </p>
-            <p className="label">Favorite courses</p>
-            <Courses />
+            </div>
           </div>
-          <button
-            type="button"
-            className="card-copy card-compact"
-            onClick={(event) => openDetail("bilkent", event.currentTarget)}
+          <a
+            className="mark mark-bilkent"
+            href={frame1Config.links.bilkent}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="Bilkent University website"
           >
-            <span className="title title-bilkent">BSc Computer Engineering</span>
-            <span className="label">Favorite courses</span>
-            <span className="text">{frame1Config.bilkentWhy.line}</span>
-          </button>
+            <PlainLogo src={frame1Config.assets.bilkentLogo} />
+          </a>
         </section>
-
-        <img
-          id="frame1-main-image"
-          className="portrait-sharp"
-          src={frame1Config.assets.portrait}
-          alt="Portrait of Alper Bozkurt"
-          draggable={false}
-          onLoad={() => measureRef.current()}
-        />
-
-        <div className="identity">
-          <p className="middle-name">Alper Bozkurt</p>
-          <div className="under-name">
-            <div className="middle-copy">
-              <p className="middle-lead">{frame1Config.intro.lead}</p>
-              <p className="middle-more">{frame1Config.intro.more}</p>
-            </div>
-            {scrollOpening ? (
-              <p className="middle-hint">
-                <Invite arrow="down">{frame1Config.scrollOpening.hint}</Invite>
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <a
-          className="icon-link icon-github"
-          href={frame1Config.links.github}
-          target="_blank"
-          rel="noreferrer noopener"
-          aria-label="GitHub"
-        >
-          <GitHubIcon />
-        </a>
-        <a
-          className="icon-link icon-linkedin"
-          href={frame1Config.links.linkedin}
-          target="_blank"
-          rel="noreferrer noopener"
-          aria-label="LinkedIn"
-        >
-          <LinkedInIcon />
-        </a>
-
-        <a
-          className="mark mark-buas"
-          href={frame1Config.links.buas}
-          target="_blank"
-          rel="noreferrer noopener"
-          aria-label="Breda University of Applied Sciences website"
-        >
-          <PlainLogo src={frame1Config.assets.buasLogo} />
-        </a>
-        <a
-          className="mark mark-bilkent"
-          href={frame1Config.links.bilkent}
-          target="_blank"
-          rel="noreferrer noopener"
-          aria-label="Bilkent University website"
-        >
-          <PlainLogo src={frame1Config.assets.bilkentLogo} />
-        </a>
-
-        {scrollOpening ? null : (
-          <p className={cueOn ? "scroll-cue" : "scroll-cue is-gone"} aria-hidden={cueOn ? undefined : true}>
-            <span>{frame1Config.scrollCue.text}</span>
-            <svg className="scroll-cue-arrow" viewBox="0 0 12 12" aria-hidden="true">
-              <path
-                d="M2.2 4.4 L6 8.1 L9.8 4.4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </p>
-        )}
       </div>
-
-      {detail ? (
-        <div
-          className="research-layer card-detail-layer"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && detailPose !== "back") setDetailPose("back");
-          }}
-        >
-          <div
-            className={
-              reduced
-                ? detailPose === "open"
-                  ? "research-panel card-detail is-shown"
-                  : "research-panel card-detail"
-                : "research-panel card-detail"
-            }
-            role="dialog"
-            aria-modal="true"
-            aria-label={detail === "buas" ? "Master Game Technology" : "BSc Computer Engineering"}
-            style={sheetMotion(detailPose, detailShift)}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="research-close"
-              aria-label="Close"
-              onClick={() => setDetailPose("back")}
-            >
-              ×
-            </button>
-            <div className="research-scroll card-detail-copy">
-              {detail === "buas" ? (
-                <>
-                  <p className="title title-buas">Master Game Technology</p>
-                  <div className="rule" />
-                  <p className="label">AI & Procedural Generation</p>
-                  <p className="text">
-                    {frame1Config.buasLead} {frame1Config.buasRest}
-                  </p>
-                  <button
-                    type="button"
-                    className="invite research-open"
-                    onClick={(event) => openResearch(event.currentTarget)}
-                  >
-                    <span className="invite-text">Explore my research</span>
-                    <InviteArrow direction="right" />
-                    <InviteLine />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="title title-bilkent">BSc Computer Engineering</p>
-                  <div className="rule" />
-                  <p className="text why-line">
-                    {frame1Config.bilkentWhy.line}{" "}
-                    <button ref={whyDetailRef} type="button" className="why-button">
-                      {frame1Config.bilkentWhy.label}
-                    </button>
-                  </p>
-                  <p className="label">Favorite courses</p>
-                  <Courses />
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {research ? (
         <div
@@ -1342,7 +747,7 @@ export function Frame1() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="research-plan-title"
-            style={sheetMotion(research, researchShift)}
+            style={sheetMotion()}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <button

@@ -3,7 +3,12 @@ import { whyNoteStyle } from "./config";
 import "./whyNote.css";
 
 type WhyNoteOptions = {
-  note: string;
+  /** One paragraph. Used when `paragraphs` is omitted. */
+  note?: string;
+  /** Paragraphs, in reading order. */
+  paragraphs?: readonly string[];
+  /** Phrases drawn with the gold band. Each is matched once, in order. */
+  highlights?: readonly string[];
   /** Accessible name of the note panel. */
   label: string;
 };
@@ -23,6 +28,37 @@ const CLOSE = `<svg viewBox="0 0 16 16" aria-hidden="true">
 
 /** Class every button gets once attachWhyNote is attached to it. */
 const WHY_MARKER = "why-button";
+
+/** Writes `text` into `paragraph`, wrapping each highlight in a mark. */
+function fillParagraph(paragraph: HTMLParagraphElement, text: string, highlights: readonly string[]) {
+  if (highlights.length === 0) {
+    paragraph.textContent = text;
+    return;
+  }
+  const ranges: Array<{ start: number; end: number }> = [];
+  for (const phrase of highlights) {
+    if (!phrase) continue;
+    const start = text.indexOf(phrase);
+    if (start < 0) continue;
+    const end = start + phrase.length;
+    if (ranges.some((range) => start < range.end && end > range.start)) continue;
+    ranges.push({ start, end });
+  }
+  ranges.sort((a, b) => a.start - b.start);
+  if (ranges.length === 0) {
+    paragraph.textContent = text;
+    return;
+  }
+  let cursor = 0;
+  for (const range of ranges) {
+    if (range.start > cursor) paragraph.append(text.slice(cursor, range.start));
+    const mark = document.createElement("mark");
+    mark.textContent = text.slice(range.start, range.end);
+    paragraph.append(mark);
+    cursor = range.end;
+  }
+  if (cursor < text.length) paragraph.append(text.slice(cursor));
+}
 
 /** Applies the shared look as CSS variables. Call once before the first paint. */
 export function applyWhyNoteStyle() {
@@ -214,9 +250,14 @@ export function attachWhyNote(button: HTMLButtonElement, host: HTMLElement, opti
       quote.className = "why-quote";
       quote.setAttribute("aria-hidden", "true");
       quote.textContent = "“";
-      const text = document.createElement("p");
-      text.textContent = options.note;
-      panel.append(closeButton, quote, text);
+      const paragraphs = options.paragraphs?.length ? options.paragraphs : [options.note ?? ""];
+      const highlights = options.highlights ?? [];
+      const blocks = paragraphs.map((paragraph) => {
+        const text = document.createElement("p");
+        fillParagraph(text, paragraph, highlights);
+        return text;
+      });
+      panel.append(closeButton, quote, ...blocks);
       panel.addEventListener("focusout", onFocusOut);
       layer.append(panel);
       host.append(layer);
