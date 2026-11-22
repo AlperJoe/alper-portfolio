@@ -1,18 +1,21 @@
 import type { FrameId } from "../frameOrder";
 
 /**
- * Quotes in the passages between frames.
+ * Quotes in the zones between frames.
  *
  * Each entry is keyed by the frame pair it sits between, in frameOrder order:
- * "frame1>frame2" is the passage after Frame 1 and before Frame 2. When
+ * "frame1>frame2" is the zone after Frame 1 and before Frame 2. When
  * Frame 4 exists and is added to frameOrder.ts, add "frame3>frame4" and
- * "frame4>frame5" here. A pair without an entry has no passage between.
+ * "frame4>frame5" here. A pair without an entry has no zone between.
  */
 
 export type InterludeLine = {
   text: string;
-  /** Word or words inside text set in gold and italic. Must appear in text exactly once. */
-  focus: string;
+  /**
+   * Word or phrase inside text set in gold and italic. Leave it out when a
+   * line has none. When set, it must appear in text exactly once.
+   */
+  focus?: string;
 };
 
 export type Interlude = {
@@ -27,22 +30,25 @@ export type FramePair = `${FrameId}>${FrameId}`;
 export const interludes: Partial<Record<FramePair, Interlude>> = {
   "frame1>frame2": {
     lines: [
-      { text: "I like taking on problems I haven’t solved before.", focus: "problems" },
-      { text: "I learn what I need, then work through them piece by piece.", focus: "learn" },
+      { text: "Problems I haven’t solved before make me curious.", focus: "curious" },
+      {
+        text: "I’m adaptable, so I learn what I need and work through them piece by piece.",
+        focus: "adaptable",
+      },
     ],
     note: "I don’t need to know everything about a field to become interested in a problem within it. I enjoy figuring out what I need to learn, breaking the problem into smaller tasks, and working through them. That approach has helped me in different settings, including part-time work as a network engineer and building a system for an industry that was new to me. Being able to find information and put it to use gives me the confidence to get started.",
   },
   "frame2>frame3": {
     lines: [
-      { text: "I try to hear feedback without taking it personally.", focus: "feedback" },
-      { text: "It helps me see what I can do better.", focus: "better" },
+      { text: "I try to hear feedback without taking it personally.", focus: "without taking it personally" },
+      { text: "It helps me see what I can do better." },
     ],
     note: "Buddhism has influenced how I think about ego, including at work. I try to notice when I’m defending an idea simply because it is mine. That helps me listen to feedback, understand the reasoning behind it, and reconsider my approach. It is something I practise, and it shapes how I work with other people.",
   },
   "frame3>frame5": {
     lines: [
-      { text: "My perspective shapes how I experience life.", focus: "perspective" },
-      { text: "I make time for things that broaden it.", focus: "broaden" },
+      { text: "My perspective shapes how I experience life." },
+      { text: "As a planner, I make room for the things that broaden it.", focus: "planner" },
     ],
     note: "I once wrote a thesis about how our perspective shapes our happiness, and working on it changed how I live. I try to make room for things that make me happy and help me see things differently. When work gets busy, I plan that time instead of leaving it to whatever is left over. Luckily, I enjoy planning.",
   },

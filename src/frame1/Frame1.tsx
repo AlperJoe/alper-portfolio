@@ -836,7 +836,8 @@ export function Frame1() {
 
   useLayoutEffect(() => {
     const element = frameRef.current;
-    const page = element?.parentElement;
+    // The fade layer sits between this frame and its page, so the page is not the parent.
+    const page = element?.closest<HTMLElement>("[data-page]");
     if (!scrollOpening || !element || !page) return;
     let applied = -1;
     const read = (event?: Event) => {
