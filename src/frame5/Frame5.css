@@ -1,10 +1,35 @@
+/*
+  The ending page is the snap target, so it never takes a transform.
+  When the two columns are taller than the screen, the page grows and the
+  document scrolls. Nothing inside is clipped.
+*/
+.page-frame:has(.frame5) {
+  height: auto;
+  min-height: 100svh;
+}
+
+.page-frame:has(.frame5) > .page-fade {
+  height: auto;
+  min-height: 100svh;
+}
+
 .frame5 {
   position: relative;
-  height: 100svh;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-height: 100svh;
+  height: auto;
+  overflow: visible;
   background: var(--f5-bg);
   color: var(--f5-white);
   font-family: var(--font-text), sans-serif;
+}
+
+.frame5 *,
+.frame5 *::before,
+.frame5 *::after {
+  box-sizing: border-box;
 }
 
 .frame5-tint {
@@ -44,179 +69,140 @@
   pointer-events: none;
 }
 
-/* Title and the two pointing lines. */
-
-.frame5-head {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: var(--f5-title-top);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--f5-arrow-gap);
-  pointer-events: none;
-}
-
-.frame5-title {
-  margin: 0;
-  font-family: var(--font-frame5), serif;
-  font-style: italic;
-  font-weight: 400;
-  font-size: var(--f5-title-size);
-  line-height: var(--f5-title-line);
-  color: var(--f5-white);
-  white-space: nowrap;
-}
-
-.frame5-arrow {
-  display: block;
-  flex: none;
-  overflow: visible;
-  fill: none;
-  stroke: var(--f5-arrow-color);
-  stroke-width: var(--f5-arrow-stroke);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.frame5-arrow-left {
-  transform: scaleX(-1);
-}
-
-.frame5-arrow-line {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-}
-
-.frame5-arrow-head {
-  opacity: 0;
-}
-
-.frame5.is-locked .frame5-arrow-line {
-  animation: frame5-draw var(--f5-arrow-line-ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.frame5.is-locked .frame5-arrow-head {
-  animation: frame5-appear var(--f5-arrow-head-ms) ease-out var(--f5-arrow-line-ms) forwards;
-}
-
-@keyframes frame5-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes frame5-appear {
-  to {
-    opacity: 1;
-  }
-}
-
-/* The two endings share one row between the title and the back link. */
+/* Two columns. At 1440 the pair is 1296px, so each column is 584px and the sides are 72px. */
 
 .frame5-content {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(var(--f5-content-top) + var(--f5-content-shift, 0px));
-  bottom: calc(var(--f5-back-bottom) + var(--f5-back-clearance));
+  position: relative;
   z-index: 3;
   display: grid;
-  grid-template-columns: var(--f5-a-left) minmax(0, max(var(--f5-a-max), var(--f5-a-min))) 1fr minmax(0, calc(100% - var(--f5-b-left) - var(--f5-b-right))) var(--f5-b-right);
-  grid-template-areas: ". a . b .";
-  align-content: safe center;
+  flex: 1 0 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: var(--f5-columns-gap);
   align-items: start;
+  width: min(var(--f5-columns-width), calc(100% - 2 * var(--f5-columns-side)));
+  margin: var(--f5-columns-top) auto 0;
+  padding-bottom: calc(var(--f5-or-inset));
 }
 
 .frame5-ending-a {
-  grid-area: a;
+  grid-column: 1;
   min-width: 0;
 }
 
 .frame5-ending-b {
-  grid-area: b;
+  grid-column: 2;
   min-width: 0;
 }
 
-.frame5-label {
-  font-family: var(--font-text), sans-serif;
-  font-size: var(--f5-label-size);
-  font-weight: var(--f5-label-weight);
-  letter-spacing: var(--f5-label-tracking);
-  line-height: 1.2;
-  text-transform: none;
-  color: var(--f5-white-55);
+/* "or" on the center line, from 96px under the top to 96px above the bottom. */
+
+.frame5-or {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--f5-or-inset) - var(--f5-columns-top));
+  bottom: var(--f5-or-inset);
+  z-index: 4;
+  width: 0;
+  pointer-events: none;
+}
+
+.frame5-or::before,
+.frame5-or::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 1px;
+}
+
+.frame5-or::before {
+  top: 0;
+  height: 64px;
+  background: linear-gradient(transparent, var(--f5-or-line));
+}
+
+.frame5-or::after {
+  top: 120px;
+  bottom: 0;
+  background: linear-gradient(var(--f5-or-line), transparent 80%);
+}
+
+.frame5-or span {
+  position: absolute;
+  left: 0;
+  top: 70px;
+  transform: translateX(-50%);
+  font-family: var(--font-frame5), "Instrument Serif", serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--f5-or-size);
+  line-height: 1;
+  color: var(--f5-or-color);
 }
 
 .frame5-label {
   margin: 0 0 var(--f5-label-gap);
+  font-family: var(--font-text), sans-serif;
+  font-size: var(--f5-label-size);
+  font-weight: var(--f5-label-weight);
+  letter-spacing: var(--f5-label-tracking);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--f5-label-color);
 }
 
-.frame5-line-a,
-.frame5-line-b {
+.frame5-line {
   margin: 0;
   font-family: var(--font-frame5), serif;
   font-weight: 400;
+  font-size: var(--f5-headline-size);
+  line-height: var(--f5-headline-line);
   color: var(--f5-white);
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 
-.frame5-line-a {
-  font-size: var(--f5-a-size);
-  line-height: var(--f5-a-line);
+.frame5-second {
+  margin: var(--f5-second-gap) 0 0;
+  font-family: var(--font-frame5), serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--f5-second-size);
+  line-height: var(--f5-second-line);
+  color: var(--f5-second-color);
+  text-wrap: balance;
 }
 
-.frame5-line-b {
-  font-size: var(--f5-b-size);
-  line-height: var(--f5-b-line);
-}
-
-/* Ending A: the photo and the contact lines. */
+/* Let's talk: the print and the contact lines. */
 
 .frame5-contact {
   display: flex;
-  margin-top: var(--f5-a-gap);
-  gap: var(--f5-contact-gap);
-}
-
-.frame5.is-photo-above .frame5-contact {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.frame5.is-photo-right .frame5-contact {
-  flex-direction: row-reverse;
-  justify-content: flex-end;
+  flex-direction: row;
   align-items: center;
+  margin-top: var(--f5-a-gap);
   gap: var(--f5-photo-gap);
 }
 
 .frame5-photo {
   flex: none;
+  width: var(--f5-photo-w);
+  height: var(--f5-photo-h);
   margin: 0;
   padding: var(--f5-photo-border);
   background: var(--f5-photo-border-color);
   box-shadow: var(--f5-photo-shadow);
-  transform: rotate(var(--f5-photo-rotate));
   line-height: 0;
-}
-
-.frame5.is-photo-above .frame5-photo {
-  margin-left: calc(var(--f5-photo-border) / 2);
 }
 
 .frame5-photo img {
   display: block;
-  width: var(--f5-photo-w);
-  height: var(--f5-photo-w);
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  object-position: 50% 30%;
   background: #fff;
 }
 
 .frame5-lines {
-  width: max-content;
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -230,8 +216,8 @@
 .frame5-lines li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  white-space: nowrap;
+  gap: var(--f5-item-gap);
+  min-width: 0;
 }
 
 .frame5-icon {
@@ -342,6 +328,7 @@
 
 .frame5-copied {
   position: relative;
+  flex: none;
   font-size: 14px;
   font-weight: 600;
   color: var(--f5-white-70);
@@ -357,35 +344,43 @@
   top: 0;
 }
 
-.frame5-social {
-  margin-top: 4px;
-  gap: var(--f5-social-gap) !important;
+.frame5-lines .frame5-social {
+  gap: var(--f5-social-gap);
+  padding-left: calc(var(--f5-icon-size) + var(--f5-item-gap));
 }
 
 .frame5-brand {
   display: grid;
   place-items: center;
+  flex: none;
   width: var(--f5-social-size);
   height: var(--f5-social-size);
+  border-radius: var(--f5-social-radius);
   transition: transform 180ms ease;
 }
 
 .frame5-brand svg {
   display: block;
-  width: 60%;
-  height: 60%;
 }
 
 .frame5-github {
-  border-radius: 50%;
   background: var(--f5-github-bg);
   color: var(--f5-github-color);
 }
 
+.frame5-github svg {
+  width: var(--f5-github-mark);
+  height: var(--f5-github-mark);
+}
+
 .frame5-linkedin {
-  border-radius: 6px;
   background: var(--f5-linkedin-bg);
   color: var(--f5-linkedin-color);
+}
+
+.frame5-linkedin svg {
+  width: var(--f5-linkedin-mark);
+  height: var(--f5-linkedin-mark);
 }
 
 .frame5-brand:hover,
@@ -393,24 +388,23 @@
   transform: translateY(-2px);
 }
 
-/* CV sits in the same row as the brand buttons, at the same height. */
+/* CV shares the icon row: same height, same corner radius. */
 
 .frame5-cv {
   display: inline-flex;
   flex: none;
   align-items: center;
-  gap: 5px;
-  box-sizing: border-box;
+  gap: 6px;
   height: var(--f5-social-size);
-  padding: 0 11px 0 8px;
-  border-radius: 6px;
-  background: var(--f5-white);
-  color: #1c1916;
+  padding: 0 13px;
+  border-radius: var(--f5-social-radius);
+  background: #f4efe6;
+  color: #2b211a;
   font-family: var(--font-text), sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   font-style: normal;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
@@ -419,8 +413,8 @@
 
 .frame5-cv svg {
   display: block;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -433,7 +427,7 @@
   transform: translateY(-2px);
 }
 
-/* Hobbies, under the contact details, across the whole of Ending A. */
+/* Conversation starters, under the contact details. */
 
 .frame5-hobbies {
   display: flex;
@@ -447,8 +441,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: var(--f5-hobby-line-gap);
+  margin-bottom: var(--f5-hobby-tickets-gap);
 }
 
 .frame5-hobby-heading {
@@ -457,37 +451,37 @@
   font-style: italic;
   font-weight: 400;
   font-size: var(--f5-hobby-heading);
-  line-height: 1.15;
-  color: var(--f5-white);
+  line-height: 1.05;
+  color: var(--f5-hobby-heading-color);
 }
 
 .frame5-hobby-line {
   margin: 0;
   font-family: var(--font-text), sans-serif;
   font-size: var(--f5-hobby-size);
-  line-height: 1.35;
-  color: var(--f5-white-70);
+  line-height: 1.4;
+  color: var(--f5-hobby-color);
 }
 
-/* Hobbies as ticket stubs: cream paper, a warm band on top, torn along the right edge.
-   Two rows of three. Phones switch this to three rows of two. */
+/* Straight ticket stubs: cream paper, a warm band, torn along the right edge. */
 
 .frame5-tickets {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--f5-ticket-gap);
+  column-gap: var(--f5-ticket-col-gap);
+  row-gap: var(--f5-ticket-row-gap);
   align-items: stretch;
   width: 100%;
   margin: 0;
-  padding: 2px 2px 2px;
+  padding: 0;
   list-style: none;
 }
 
 .frame5-ticket {
   display: flex;
   min-width: 0;
+  min-height: var(--f5-ticket-height);
   filter: var(--f5-ticket-shadow);
-  transform: translateY(var(--f5-ticket-lift)) rotate(var(--f5-ticket-tilt));
 }
 
 .frame5-ticket-paper {
@@ -497,9 +491,9 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  box-sizing: border-box;
   width: 100%;
-  padding: calc(var(--f5-ticket-band-h) + 6px) 16px 8px 11px;
+  min-height: var(--f5-ticket-height);
+  padding: 13px 18px 8px 12px;
   background:
     linear-gradient(var(--f5-ticket-band) 0 var(--f5-ticket-band-h), transparent var(--f5-ticket-band-h)),
     linear-gradient(160deg, rgba(255, 255, 255, 0.35), rgba(160, 120, 70, 0.08)),
@@ -557,7 +551,7 @@
 .frame5-ticket-detail {
   max-width: 100%;
   font-family: var(--font-text), sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.2;
   color: rgba(43, 33, 26, 0.72);
@@ -566,8 +560,8 @@
 
 .frame5-stamp {
   position: absolute;
-  top: calc(var(--f5-ticket-band-h) + 6px);
-  right: 12px;
+  top: 12px;
+  right: 18px;
   box-sizing: border-box;
   display: grid;
   place-items: center;
@@ -599,7 +593,7 @@
   outline-offset: 3px;
 }
 
-/* Ending B: the film covers. Top-level selectors, so the transition copy keeps its look. */
+/* Watch my films. The cover row keeps its id for the Words transition. */
 
 .frame5-covers,
 .frame5-film-texts {
@@ -718,6 +712,7 @@
   padding-top: var(--f5-card-text-gap);
   font-size: var(--f5-card-size);
   line-height: var(--f5-card-line);
+  color: var(--f5-card-color);
   cursor: pointer;
 }
 
@@ -727,19 +722,21 @@
 }
 
 .frame5-film-title {
+  font-size: var(--f5-card-title-size);
   font-weight: var(--f5-card-title-weight);
   color: var(--f5-white);
 }
 
 .frame5-film-year {
-  margin-left: 4px;
+  margin-left: var(--f5-year-gap);
+  font-size: var(--f5-card-size);
   font-weight: 400;
-  color: var(--f5-white-55);
+  color: var(--f5-card-color);
 }
 
 .frame5-film-summary {
-  margin-top: 2px;
-  color: var(--f5-white-70);
+  margin-top: 6px;
+  color: var(--f5-card-color);
 }
 
 /* Back to the beginning, centered near the bottom. */
@@ -753,22 +750,12 @@
   white-space: nowrap;
 }
 
-.frame5.is-reduced .frame5-arrow-line {
-  animation: none;
-  stroke-dashoffset: 0;
-}
-
-.frame5.is-reduced .frame5-arrow-head {
-  animation: none;
-  opacity: 1;
-}
-
-/* Film overlay. */
+/* Film overlay. Fixed so it covers the screen when this frame is taller than it. */
 
 .frame5-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 8;
+  z-index: 50;
   display: grid;
   place-items: center;
   background: var(--f5-ov-backdrop);
@@ -917,114 +904,99 @@
 }
 
 /*
-  Phones: one column. The title, Ending A with the photo beside its line,
-  the contact rows and the icons, the hobby tickets in three rows of two, then
-  Ending B with each film as a card, and the way back at the end. The frame
-  grows as tall as its content.
+  Phones: one column. Let's talk, then a horizontal "or", then each film
+  with its description, then the way back. The frame grows with the content.
 */
 @media (max-width: 699.98px) {
   .frame5 {
-    display: flex;
-    flex-direction: column;
-    height: auto;
+    display: block;
     min-height: 100svh;
-    box-sizing: border-box;
-    padding: 48px var(--f5-phone-margin) 40px;
-  }
-
-  .frame5-head {
-    position: relative;
-    top: auto;
-    justify-content: flex-start;
-  }
-
-  .frame5-arrow {
-    display: none;
+    padding: 64px var(--f5-phone-margin) 40px;
   }
 
   .frame5-content {
-    position: relative;
-    top: auto;
-    bottom: auto;
     display: flex;
     flex-direction: column;
-    margin-top: 28px;
+    width: auto;
+    margin: 0;
+    padding-bottom: 0;
   }
 
-  .frame5-ending-a {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: 18px;
-    align-items: center;
-  }
-
-  .frame5-ending-a > .frame5-label,
-  .frame5-ending-a .frame5-lines,
-  .frame5-hobbies {
-    grid-column: 1 / -1;
-  }
-
-  .frame5-line-a {
-    grid-column: 1;
-    font-size: var(--f5-phone-a-size);
+  .frame5-ending-a,
+  .frame5-ending-b {
+    grid-column: auto;
   }
 
   .frame5-contact {
-    display: contents;
-  }
-
-  .frame5-photo,
-  .frame5.is-photo-above .frame5-photo {
-    grid-column: 2;
-    grid-row: 2;
-    margin: 0 4px 0 0;
-  }
-
-  .frame5-photo img {
-    width: var(--f5-phone-photo);
-    height: var(--f5-phone-photo);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
   }
 
   .frame5-lines {
-    width: auto;
-    margin-top: 22px;
+    width: 100%;
     font-size: var(--f5-phone-contact);
   }
 
   .frame5-lines li:first-child {
-    position: relative;
     flex-wrap: wrap;
     row-gap: 4px;
   }
 
-  .frame5-copied {
-    position: absolute;
-    left: calc(var(--f5-icon-size) + 10px);
-    top: 100%;
-    font-size: 12px;
-  }
-
-  .frame5-copied-room {
-    display: none;
-  }
-
   .frame5-hobbies {
-    margin-top: 40px;
+    margin-top: 36px;
   }
 
   .frame5-tickets {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 16px;
   }
 
   .frame5-ticket-label {
     font-size: var(--f5-phone-ticket);
   }
 
+  .frame5-or {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: auto;
+    margin: 40px 0;
+  }
+
+  .frame5-or::before,
+  .frame5-or::after {
+    position: relative;
+    top: auto;
+    bottom: auto;
+    flex: 1 1 auto;
+    width: auto;
+    height: 1px;
+  }
+
+  .frame5-or::before {
+    background: linear-gradient(to right, transparent, var(--f5-or-line));
+  }
+
+  .frame5-or::after {
+    background: linear-gradient(to right, var(--f5-or-line), transparent);
+  }
+
+  .frame5-or span {
+    position: relative;
+    left: auto;
+    top: auto;
+    flex: none;
+    padding: 0 14px;
+    transform: none;
+  }
+
   .frame5-ending-b {
     display: flex;
     flex-direction: column;
-    margin-top: 56px;
   }
 
   .frame5-covers,
@@ -1034,7 +1006,6 @@
 
   .frame5-cover:nth-child(1) {
     order: 1;
-    margin-top: var(--f5-b-gap);
   }
 
   .frame5-film-text:nth-child(1) {
@@ -1059,15 +1030,14 @@
     position: relative;
     left: auto;
     bottom: auto;
-    align-self: center;
-    margin-top: 56px;
+    display: flex;
+    width: fit-content;
+    margin: 48px auto 0;
     transform: none;
   }
 
   /* A film opens over the whole screen: the video on top, the notes scrolling under it. */
   .frame5-overlay {
-    position: fixed;
-    z-index: 30;
     place-items: stretch;
     background: var(--f5-ov-panel);
   }
@@ -1103,7 +1073,6 @@
     top: 8px;
     right: 12px;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

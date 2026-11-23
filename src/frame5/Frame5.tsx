@@ -11,7 +11,6 @@ const A = frame5.endingA;
 const B = frame5.endingB;
 const OVERLAY = frame5.overlay;
 const WARNING = frame5.warning;
-const ARROWS = frame5.arrows;
 const TICKET = A.hobbies.ticket;
 
 const GRAIN = {
@@ -68,42 +67,6 @@ async function copyText(text: string) {
     area.remove();
     return ok;
   }
-}
-
-function arrowGeometry(length: number) {
-  const { drop, head, headAngle } = ARROWS;
-  const height = Math.ceil(2 * (drop + head + 2));
-  const mid = height / 2;
-  const control = { x: length * 0.62, y: mid };
-  const end = { x: length - 1, y: mid + drop };
-  const angle = Math.atan2(end.y - control.y, end.x - control.x);
-  const spread = (headAngle * Math.PI) / 180;
-  const wing = (side: number) => {
-    const a = angle + Math.PI + side * spread;
-    return `${(end.x + Math.cos(a) * head).toFixed(2)} ${(end.y + Math.sin(a) * head).toFixed(2)}`;
-  };
-  return {
-    width: length,
-    height,
-    line: `M 0 ${mid} Q ${control.x.toFixed(2)} ${control.y} ${end.x.toFixed(2)} ${end.y}`,
-    head: `M ${wing(-1)} L ${end.x.toFixed(2)} ${end.y} L ${wing(1)}`,
-  };
-}
-
-function Arrow({ length, side }: { length: number; side: "left" | "right" }) {
-  const shape = arrowGeometry(length);
-  return (
-    <svg
-      className={`frame5-arrow frame5-arrow-${side}`}
-      width={shape.width}
-      height={shape.height}
-      viewBox={`0 0 ${shape.width} ${shape.height}`}
-      aria-hidden="true"
-    >
-      <path className="frame5-arrow-line" d={shape.line} pathLength={1} />
-      <path className="frame5-arrow-head" d={shape.head} />
-    </svg>
-  );
 }
 
 function Icon({ children }: { children: ReactNode }) {
@@ -260,7 +223,7 @@ function UpArrow() {
 
 function LinkedInIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg viewBox="-1.51 0.5 24 24" aria-hidden="true">
       <path
         fill="currentColor"
         d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8.5h4V24h-4V8.5zM8.5 8.5h3.84v2.11h.05c.53-1.01 1.84-2.08 3.79-2.08 4.05 0 4.8 2.67 4.8 6.14V24h-4v-7.71c0-1.84-.03-4.2-2.56-4.2-2.56 0-2.95 2-2.95 4.06V24h-4V8.5z"
@@ -303,7 +266,6 @@ function CoverWarning({ text }: { text: string }) {
 export function Frame5() {
   const frameRef = useRef<HTMLElement>(null);
   const grainRef = useRef<HTMLCanvasElement>(null);
-  const linesRef = useRef<HTMLUListElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -314,8 +276,6 @@ export function Frame5() {
   const shown = usePageOnScreen(frameRef);
   const [contact, setContact] = useState<Contact | null>(null);
   const [copied, setCopied] = useState(false);
-  const [arrowLength, setArrowLength] = useState(ARROWS.minLength);
-  const [photoRight, setPhotoRight] = useState(A.photoPlacement === "right");
   const [overlay, setOverlay] = useState<OverlayState>(null);
   const [longOpen, setLongOpen] = useState(false);
   const [hot, setHot] = useState<string | null>(null);
@@ -332,56 +292,6 @@ export function Frame5() {
     const id = window.setTimeout(() => setCopied(false), A.copiedMs);
     return () => window.clearTimeout(id);
   }, [copied]);
-
-  const layout = useCallback(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const width = frame.clientWidth;
-
-    setArrowLength(Math.round(Math.min(ARROWS.maxLength, Math.max(ARROWS.minLength, width * ARROWS.length))));
-
-    if (A.photoPlacement === "auto") {
-      const lines = linesRef.current?.offsetWidth ?? 0;
-      const photo = A.photoWidth + 2 * A.photoBorder + 8;
-      const room = Math.max(width * A.maxWidth, A.minWidth);
-      setPhotoRight(lines + A.photoGap + photo <= room);
-    }
-
-    // Keep clear space under the title row. On short screens the endings move down for it.
-    const head = frame.querySelector<HTMLElement>(".frame5-head");
-    const label = frame.querySelector<HTMLElement>(".frame5-content .frame5-label");
-    frame.style.setProperty("--f5-content-shift", "0px");
-    if (head && label && getComputedStyle(head).position === "absolute") {
-      let shift = 0;
-      for (let step = 0; step < 3; step += 1) {
-        const gap = label.getBoundingClientRect().top - head.getBoundingClientRect().bottom;
-        if (gap >= frame5.title.clearance - 0.5) break;
-        shift += frame5.title.clearance - gap;
-        frame.style.setProperty("--f5-content-shift", `${Math.ceil(shift)}px`);
-      }
-    }
-
-    // One height for every ticket, including the short labels on the second row.
-    const papers = [...frame.querySelectorAll<HTMLElement>(".frame5-ticket-paper")];
-    for (const paper of papers) paper.style.minHeight = "";
-    let tallest = 0;
-    for (const paper of papers) tallest = Math.max(tallest, paper.offsetHeight);
-    if (tallest > 0) {
-      const height = `${tallest}px`;
-      for (const paper of papers) paper.style.minHeight = height;
-    }
-  }, []);
-
-  useLayoutEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    layout();
-    const observer = new ResizeObserver(layout);
-    observer.observe(frame);
-    if (linesRef.current) observer.observe(linesRef.current);
-    document.fonts?.ready.then(layout);
-    return () => observer.disconnect();
-  }, [layout, contact]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -524,15 +434,16 @@ export function Frame5() {
     "--f5-white-55": frame5.white55,
     "--f5-white-70": frame5.white70,
     "--f5-focus": frame5.focus,
-    "--f5-title-top": `${frame5.title.top * 100}%`,
-    "--f5-title-size": frame5.title.size,
-    "--f5-title-line": String(frame5.title.line),
-    "--f5-arrow-gap": `${ARROWS.gap}px`,
-    "--f5-arrow-color": ARROWS.color,
-    "--f5-arrow-stroke": String(ARROWS.stroke),
-    "--f5-arrow-line-ms": `${Math.round(ARROWS.drawSeconds * ARROWS.lineShare * 1000)}ms`,
-    "--f5-arrow-head-ms": `${Math.round(ARROWS.drawSeconds * (1 - ARROWS.lineShare) * 1000)}ms`,
-    "--f5-content-top": `${frame5.content.top * 100}%`,
+    "--f5-or-inset": `${frame5.or.inset}px`,
+    "--f5-or-size": frame5.or.size,
+    "--f5-or-color": frame5.or.color,
+    "--f5-or-line": frame5.or.line,
+    "--f5-columns-top": `${frame5.columns.top}px`,
+    "--f5-columns-width": `${frame5.columns.width}px`,
+    "--f5-columns-gap": `${frame5.columns.gap}px`,
+    "--f5-columns-side": `${frame5.columns.minSide}px`,
+    "--f5-headline-size": frame5.headline.size,
+    "--f5-headline-line": String(frame5.headline.line),
     "--f5-cta": frame5.cta.color,
     "--f5-cta-size": frame5.cta.size,
     "--f5-cta-draw": frame5.cta.draw,
@@ -541,36 +452,39 @@ export function Frame5() {
     "--f5-warning-mark": `${WARNING.markSize}px`,
     "--f5-warning-text": WARNING.textSize,
     "--f5-warning-ink": WARNING.textColor,
-    "--f5-title-clearance": `${frame5.title.clearance}px`,
     "--f5-label-size": frame5.label.size,
     "--f5-label-weight": String(frame5.label.weight),
     "--f5-label-tracking": frame5.label.tracking,
     "--f5-label-gap": frame5.label.gap,
-    "--f5-a-left": `${A.left * 100}%`,
-    "--f5-a-max": `${A.maxWidth * 100}%`,
-    "--f5-a-min": `${A.minWidth}px`,
-    "--f5-a-size": A.lineSize,
-    "--f5-a-line": String(A.lineHeight),
+    "--f5-label-color": frame5.label.color,
     "--f5-a-gap": A.lineGap,
     "--f5-photo-w": `${A.photoWidth}px`,
+    "--f5-photo-h": `${A.photoHeight}px`,
     "--f5-photo-border": `${A.photoBorder}px`,
     "--f5-photo-border-color": A.photoBorderColor,
-    "--f5-photo-rotate": `${A.photoRotate}deg`,
     "--f5-photo-shadow": A.photoShadow,
     "--f5-photo-gap": `${A.photoGap}px`,
     "--f5-contact-size": A.contactSize,
     "--f5-contact-gap": A.contactGap,
+    "--f5-item-gap": A.itemGap,
     "--f5-icon-size": A.iconSize,
     "--f5-icon-color": A.iconColor,
     "--f5-link-hover": A.linkHover,
     "--f5-social-size": `${A.socialSize}px`,
+    "--f5-social-radius": A.socialRadius,
     "--f5-social-gap": A.socialGap,
+    "--f5-github-mark": `${A.githubMark}px`,
+    "--f5-linkedin-mark": `${A.linkedinMark}px`,
     "--f5-github-bg": A.githubBackground,
     "--f5-github-color": A.githubColor,
     "--f5-linkedin-bg": A.linkedinBackground,
     "--f5-linkedin-color": A.linkedinColor,
     "--f5-hobby-heading": A.hobbies.headingSize,
+    "--f5-hobby-heading-color": A.hobbies.headingColor,
     "--f5-hobby-size": A.hobbies.textSize,
+    "--f5-hobby-color": A.hobbies.textColor,
+    "--f5-hobby-line-gap": A.hobbies.lineGap,
+    "--f5-hobby-tickets-gap": A.hobbies.ticketsGap,
     "--f5-hobby-gap": A.hobbies.topGap,
     "--f5-hobby-icon": A.hobbies.iconSize,
     "--f5-ticket-paper": TICKET.paper,
@@ -579,22 +493,27 @@ export function Frame5() {
     "--f5-ticket-band-h": TICKET.band,
     "--f5-ticket-tear-r": `${TICKET.tearRadius}px`,
     "--f5-ticket-tear-step": `${TICKET.tearStep}px`,
-    "--f5-ticket-gap": TICKET.gap,
+    "--f5-ticket-height": `${TICKET.height}px`,
+    "--f5-ticket-col-gap": TICKET.columnGap,
+    "--f5-ticket-row-gap": TICKET.rowGap,
     "--f5-ticket-shadow": TICKET.shadow,
     "--f5-stamp-color": TICKET.stamp.color,
     "--f5-stamp-size": `${TICKET.stamp.size}px`,
     "--f5-stamp-font": TICKET.stamp.fontSize,
     "--f5-stamp-tilt": `${TICKET.stamp.tilt}deg`,
-    "--f5-b-left": `${B.left * 100}%`,
-    "--f5-b-right": `${B.right * 100}%`,
-    "--f5-b-size": B.lineSize,
-    "--f5-b-line": String(B.lineHeight),
+    "--f5-second-gap": B.secondGap,
+    "--f5-second-size": B.secondSize,
+    "--f5-second-line": String(B.secondLine),
+    "--f5-second-color": B.secondColor,
     "--f5-b-gap": B.lineGap,
     "--f5-card-gap": B.cardGap,
     "--f5-card-size": B.cardTextSize,
+    "--f5-card-title-size": B.cardTitleSize,
     "--f5-card-line": String(B.cardTextLine),
+    "--f5-card-color": B.cardTextColor,
     "--f5-card-title-weight": String(B.cardTitleWeight),
     "--f5-card-text-gap": B.cardTextGap,
+    "--f5-year-gap": B.yearGap,
     "--f5-cover-radius": B.coverRadius,
     "--f5-cover-scale": String(B.coverHoverScale),
     "--f5-cover-ms": `${B.coverMs}ms`,
@@ -619,44 +538,29 @@ export function Frame5() {
     "--f5-ov-fade": `${OVERLAY.fadeMs}ms`,
     "--f5-ov-from": String(OVERLAY.fromScale),
     "--f5-phone-margin": `${frame5.phone.margin}px`,
-    "--f5-phone-a-size": frame5.phone.lineSize,
-    "--f5-phone-photo": `${frame5.phone.photoWidth}px`,
     "--f5-phone-contact": frame5.phone.contactSize,
     "--f5-phone-ticket": frame5.phone.ticketSize,
     "--f5-back-bottom": `${frame5.back.bottom}px`,
     "--f5-back-clearance": `${frame5.back.clearance}px`,
   } as CSSProperties;
 
-  const classes = [
-    "frame5",
-    shown ? "is-locked" : "",
-    reduced ? "is-reduced" : "",
-    photoRight ? "is-photo-right" : "is-photo-above",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const classes = ["frame5", shown ? "is-locked" : "", reduced ? "is-reduced" : ""].filter(Boolean).join(" ");
 
   const activeFilm = overlay?.film;
 
   return (
-    <section className={classes} ref={frameRef} style={style} aria-label="Pick your ending">
+    <section className={classes} ref={frameRef} style={style}>
       <div className="frame5-tint depth-back" aria-hidden="true" />
-
-      <header className="frame5-head">
-        <Arrow length={arrowLength} side="left" />
-        <h2 className="frame5-title">{frame5.title.text}</h2>
-        <Arrow length={arrowLength} side="right" />
-      </header>
 
       <div className="frame5-content">
         <div className="frame5-ending frame5-ending-a">
           <p className="frame5-label">{A.label}</p>
-          <p className="frame5-line-a">{A.line}</p>
+          <h2 className="frame5-line">{A.line}</h2>
           <div className="frame5-contact">
             <figure className="frame5-photo">
-              <img src={A.photo} alt="Alper Bozkurt" width={A.photoWidth} height={A.photoWidth} />
+              <img src={A.photo} alt="Alper Bozkurt" width={A.photoWidth} height={A.photoHeight} />
             </figure>
-            <ul className="frame5-lines" ref={linesRef}>
+            <ul className="frame5-lines">
               <li>
                 <MailIcon />
                 <button
@@ -726,12 +630,7 @@ export function Frame5() {
             </div>
             <ul className="frame5-tickets">
               {A.hobbies.items.map((item) => {
-                const look = TICKET.look[item.id];
-                const ticketStyle = {
-                  "--f5-ticket-band": look.band,
-                  "--f5-ticket-tilt": `${look.tilt}deg`,
-                  "--f5-ticket-lift": `${look.lift}px`,
-                } as CSSProperties;
+                const ticketStyle = { "--f5-ticket-band": TICKET.look[item.id].band } as CSSProperties;
                 const stamped = TICKET.stamp.on === item.id;
                 return (
                   <li
@@ -758,9 +657,14 @@ export function Frame5() {
           </section>
         </div>
 
+        <div className="frame5-or" aria-hidden="true">
+          <span>{frame5.or.text}</span>
+        </div>
+
         <div className="frame5-ending frame5-ending-b">
           <p className="frame5-label">{B.label}</p>
-          <p className="frame5-line-b">{B.line}</p>
+          <h2 className="frame5-line">{B.line}</h2>
+          <p className="frame5-second">{B.second}</p>
           <div className="frame5-covers" id={frame5.mainId}>
             {B.films.map((film) => (
               <button

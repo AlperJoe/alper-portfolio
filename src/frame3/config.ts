@@ -156,14 +156,14 @@ export const frame3 = {
   projectUrl: "https://github.com/AlperJoe/Reinforcement_Learning",
 
   copy: {
-    eyebrow: "PressurePlate · Bilkent course project, 2023",
-    title: "Teaching two AI agents to work together",
-    intro: "Two AI agents learn to open doors for each other so they can reach the treasure.",
+    eyebrow: "PressurePlate · Multi-agent reinforcement learning · 2023",
+    title: "Teaching two agents to work together",
+    intro: "Two agents learn to open doors for each other so they can reach the treasure.",
     showsLabel: "What this project shows",
     shows: [
       {
-        text: "I designed what an AI agent sees, a small grid around it with its position and how long it can still hold a door open.",
-        mark: "what an AI agent sees",
+        text: "I designed what an agent sees, a small grid around it with its position and how long it can still hold a door open.",
+        mark: "what an agent sees",
       },
       {
         text: "I rebuilt the level to make it harder than the original, a 28×14 map with five doors.",
