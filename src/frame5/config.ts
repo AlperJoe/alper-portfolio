@@ -49,50 +49,46 @@ export const frame5 = {
   focus: "#F2EEE6",
   grainAlpha: 0.05,
 
-  title: {
-    text: "Pick your ending.",
-    top: 0.07,
-    /**
-     * Least space between the title row and the Ending A and Ending B
-     * labels, in pixels. On short screens the endings move down to keep it.
-     */
-    clearance: 16,
-    size: "clamp(28px, 2.6vw, 44px)",
-    line: 1.1,
-  },
-  /** The two lines beside the title that point to Ending A and Ending B. */
-  arrows: {
-    /** Gap between the title and the start of a line, in pixels. */
-    gap: 18,
-    /** Length of each line, as a fraction of the frame width, clamped in pixels. */
-    length: 0.12,
-    minLength: 90,
-    maxLength: 240,
-    /** How far each line bends down toward its half, in pixels. */
-    drop: 16,
-    /** Arrowhead size, in pixels, and its half angle, in degrees. */
-    head: 7,
-    headAngle: 30,
-    stroke: 1.25,
-    color: "rgba(242, 238, 230, 0.55)",
-    /** Seconds to draw, once, when the frame arrives. */
-    drawSeconds: 0.3,
-    /** Share of the draw time the line takes before the head appears. */
-    lineShare: 0.8,
+  /**
+   * The gold "or" between the endings. On a wide screen it sits on a vertical
+   * line down the middle. On a phone the same word sits on a horizontal line.
+   */
+  or: {
+    text: "or",
+    /** Distance from the top and the bottom of the frame, in pixels. */
+    inset: 96,
+    size: "34px",
+    color: "#EFC785",
+    line: "rgba(239, 199, 133, 0.45)",
   },
 
-  /** Area both halves share, between the title and the back link. */
-  content: {
-    /** Top, as a fraction of the frame height. */
-    top: 0.125,
+  /**
+   * Two columns at 1440×900: each 584px, left at 72px and right at 784px,
+   * both 104px under the top. The pair is 1296px wide, so centering it
+   * leaves 72px on each side. Narrower screens keep the columns and shrink
+   * them. A short screen lets the frame grow instead of overlapping.
+   */
+  columns: {
+    top: 104,
+    width: 1296,
+    gap: 128,
+    /** Side margin once the screen is too narrow for the 1296px pair. */
+    minSide: 24,
   },
 
-  /** Small label above each ending. */
+  /** Small label above each ending. At least 13px. */
   label: {
-    size: "14px",
+    size: "13px",
     weight: 600,
-    tracking: "0.12em",
-    gap: "10px",
+    tracking: "0.2em",
+    gap: "14px",
+    color: "rgba(242, 238, 230, 0.58)",
+  },
+
+  /** Shared headline size for both endings. */
+  headline: {
+    size: "40px",
+    line: 1.12,
   },
 
   /** Invitations to act. The underline draws only on hover or keyboard focus. */
@@ -118,31 +114,24 @@ export const frame5 = {
   },
 
   endingA: {
-    label: "Ending A",
+    label: "Let's talk",
     line: "You scrolled all the way here. I think we should talk.",
-    left: 0.06,
-    maxWidth: 0.36,
-    /**
-     * Narrowest width for this half, in pixels. On a short screen the column
-     * is too slim for the photo to sit beside the lines, and the stacked
-     * photo leaves no room under the contact details.
-     */
-    minWidth: 560,
-    lineSize: "clamp(30px, 3vw, 52px)",
-    lineHeight: 1.1,
-    lineGap: "12px",
-    /** Photo beside the contact lines, or above them. "auto" picks what fits. */
-    photoPlacement: "auto" as "auto" | "right" | "above",
+    /** Space between the headline and the contact row, in pixels. */
+    lineGap: "34px",
     photo: asset("contact-photo.webp"),
-    photoWidth: 120,
+    /** Outer print, including the border. */
+    photoWidth: 130,
+    photoHeight: 162,
     photoBorder: 6,
     photoBorderColor: "#F4EFE6",
-    photoRotate: -2,
     photoShadow: "0 14px 30px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.35)",
     /** Gap between the photo and the contact lines, in pixels. */
-    photoGap: 28,
+    photoGap: 30,
     contactSize: "18px",
-    contactGap: "12px",
+    /** Space between the email, the phone and the icon row. */
+    contactGap: "16px",
+    /** Space between an icon and the text beside it. */
+    itemGap: "12px",
     iconSize: "18px",
     iconColor: "rgba(242, 238, 230, 0.6)",
     linkHover: "#FFFFFF",
@@ -160,8 +149,12 @@ export const frame5 = {
      */
     email: { name: ["alperjoe", "bozkurt"], domain: ["gmail", "com"] },
     phone: { country: "31", groups: ["6", "8558", "5100"] },
-    socialSize: 32,
-    socialGap: "14px",
+    socialSize: 34,
+    socialRadius: "7px",
+    socialGap: "10px",
+    /** Mark sizes inside the shared button shape. */
+    githubMark: 20,
+    linkedinMark: 16,
     github: "https://github.com/AlperJoe",
     linkedin: "https://www.linkedin.com/in/alperbozkurt/",
     githubBackground: "#FFFFFF",
@@ -170,50 +163,58 @@ export const frame5 = {
     linkedinColor: "#FFFFFF",
     /** Block under the contact details and the photo, across this half. */
     hobbies: {
-      heading: "A little more about me.",
-      line: "Outside work, you’ll usually find me doing one of these.",
+      heading: "Conversation starters",
+      line: "If you'd rather not start with work, pick one of these.",
       items: [
         { id: "piano", label: "Piano and bass at jam sessions" },
         { id: "ticket", label: "Cinema, up to three times a week" },
         { id: "ball", label: "Basketball", detail: "but I’m up for almost any sport" },
         { id: "mat", label: "Yoga" },
         { id: "piece", label: "Board games" },
-        { id: "pan", label: "Cooking for myself, every day" },
+        { id: "pan", label: "Cooking every day" },
       ] satisfies { id: HobbyIcon; label: string; detail?: string }[],
-      /** Display face, about 30px, under the ending line. */
-      headingSize: "30px",
+      /** Instrument Serif italic, gold. */
+      headingSize: "36px",
+      headingColor: "#EFC785",
       /** Archivo, on its own line under the heading. */
-      textSize: "13px",
+      textSize: "16px",
+      textColor: "rgba(242, 238, 230, 0.78)",
+      /** Space between the heading and this line, then between the line and the tickets. */
+      lineGap: "8px",
+      ticketsGap: "18px",
       /** Clear space between the contact block and this heading, in pixels. */
-      topGap: "22px",
-      iconSize: "32px",
+      topGap: "40px",
+      iconSize: "26px",
       /** Each hobby is a ticket stub, pinned under the contact details. */
       ticket: {
         paper: "#F3EADB",
         ink: "#2B211A",
-        /** At least 13px, and about 30% above the previous 11.5px stubs. */
-        textSize: "15px",
+        /** At least 13px. */
+        textSize: "14.5px",
+        /** Each ticket is this tall. A longer label may grow past it so nothing is cut. */
+        height: 88,
         band: "6.5px",
         /** Radius of the half circles along the torn edge, and their spacing, in pixels. */
         tearRadius: 3.4,
         tearStep: 10,
-        gap: "12px",
+        columnGap: "18px",
+        rowGap: "16px",
         shadow: "drop-shadow(0 8px 12px rgba(0, 0, 0, 0.45)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35))",
-        /** Band color, tilt in degrees and a small vertical nudge in pixels, per hobby. */
+        /** Band color per hobby. The tickets themselves stay straight. */
         look: {
-          piano: { band: "#ED7624", tilt: -3, lift: 2 },
-          ticket: { band: "#C8452E", tilt: 2.5, lift: -2 },
-          ball: { band: "#E3A23B", tilt: -1.5, lift: 3 },
-          mat: { band: "#B9704A", tilt: 3.5, lift: -1 },
-          piece: { band: "#D9622B", tilt: -2.5, lift: 1 },
-          pan: { band: "#C46A3A", tilt: 2, lift: -2 },
-        } satisfies Record<HobbyIcon, { band: string; tilt: number; lift: number }>,
+          piano: { band: "#ED7624" },
+          ticket: { band: "#C8452E" },
+          ball: { band: "#E3A23B" },
+          mat: { band: "#B9704A" },
+          piece: { band: "#D9622B" },
+          pan: { band: "#C46A3A" },
+        } satisfies Record<HobbyIcon, { band: string }>,
         stamp: {
           on: "ticket" as HobbyIcon,
           text: "up to 3×",
           color: "#B23A26",
-          size: 44,
-          fontSize: "11px",
+          size: 46,
+          fontSize: "13px",
           tilt: -14,
         },
       },
@@ -221,18 +222,26 @@ export const frame5 = {
   },
 
   endingB: {
-    label: "Ending B",
-    line: "Or stay for two short films I made when I wanted to become a filmmaker. Both grew out of personal stories I wanted to tell through images and sound.",
-    left: 0.54,
-    right: 0.05,
-    lineSize: "clamp(22px, 2vw, 34px)",
-    lineHeight: 1.2,
-    lineGap: "22px",
-    cardGap: "22px",
-    cardTextSize: "14px",
-    cardTextLine: 1.45,
+    label: "Watch my films",
+    line: "Stay for two unscripted short films I made when I wanted to become a filmmaker.",
+    second:
+      "I made films about the people and relationships that shaped my life. I chose these two because they can be watched without a language barrier.",
+    /** Space between the headline and the second line, in pixels. */
+    secondGap: "14px",
+    secondSize: "25px",
+    secondLine: 1.28,
+    secondColor: "rgba(242, 238, 230, 0.78)",
+    /** Space between the second line and the covers. */
+    lineGap: "34px",
+    cardGap: "24px",
+    cardTextSize: "16px",
+    cardTitleSize: "17px",
+    cardTextLine: 1.5,
+    cardTextColor: "rgba(242, 238, 230, 0.58)",
     cardTitleWeight: 600,
-    cardTextGap: "10px",
+    cardTextGap: "16px",
+    /** Space between a film title and its year. */
+    yearGap: "8px",
     coverRadius: "4px",
     coverHoverScale: 1.03,
     coverMs: 220,
@@ -268,7 +277,8 @@ export const frame5 = {
         year: 2024,
         videoId: "6B0btHK9d2U",
         warning: "Content warning: this film contains violence.",
-        summary: "A couple shows how to boil an egg, and the egg stands for a child.",
+        summary:
+          "A couple shows how to boil an egg, and the egg stands for a child. Through them I told the story of someone who affected me deeply. It is hard to watch, but I wanted it to be remembered.",
         personal: [
           "This film began with someone I love very much. I wanted to make something dedicated to her, shaped by what she had lived through. Her identity remains private, and she has given her consent to this dedication.",
           "But I knew that many people lived through the same thing. To me, the problem was in the system, and I wanted the film to keep that in view. As personal as its starting point was, I did not want the viewer’s connection to one character to become the centre of the film. That was a difficult choice for me, but it led me to tell the story through a metaphor and a separate narrative: a couple boiling an egg. Through them, I wanted to show how people repeat what they have seen and treat decisions whose consequences shape another person’s life as ordinary, everyday acts.",
@@ -339,14 +349,12 @@ export const frame5 = {
   },
 
   /**
-   * Screens narrower than 700px: one column, with the photo smaller beside
-   * the Ending A line and the tickets in three rows of two.
+   * Screens narrower than 700px: one column. Let's talk, then a horizontal
+   * "or", then the films one under the other. The frame grows with the content.
    */
   phone: {
     /** Side margins, in pixels. */
     margin: 24,
-    lineSize: "28px",
-    photoWidth: 84,
     contactSize: "16px",
     ticketSize: "14px",
   },
